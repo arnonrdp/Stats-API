@@ -1,8 +1,8 @@
 const express = require('express')
 const router = express.Router()
-const likesController = require('../controllers/likesController')
+const statsController = require('../controllers/statsController')
 
-router.post('/poems/:poem_id/like', likesController.createOrRemove)
-router.post('/poems/:poem_id/dislike', likesController.createOrRemove)
+router.post('/stats', statsController.create)
+// router.get('/stats', statsController.read)
 
 module.exports = router
