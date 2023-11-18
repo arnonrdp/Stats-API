@@ -1,4 +1,6 @@
-# We've Got Poems - Backend
+# Stats API
+
+Statistics from Celebrity Fanalyzer entries
 
 ## How to Run
 
