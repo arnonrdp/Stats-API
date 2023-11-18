@@ -10,7 +10,7 @@ const spec = {
     description: 'Statistics from Celebrity Fanalyzer entries'
   },
   servers: [
-    { url: 'https://stats-api.up.railway.app/v1', description: 'Production server' },
+    { url: 'https://stats-api-production.up.railway.app/v1', description: 'Production server' },
     { url: 'http://localhost:3000/v1', description: 'Local server' }
   ],
   paths: {
