@@ -34,9 +34,6 @@ const spec = {
         tags: ['Stats'],
         summary: 'Get stats from the database',
         operationId: 'getStats',
-        parameters: [
-          { name: 'author', in: 'query', description: 'Search for stats by author name (optional)', schema: { type: 'string' } }
-        ],
         responses: {
           200: {
             description: 'Success',
