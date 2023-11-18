@@ -72,6 +72,5 @@ const dropTable = async (req, res) => {
 module.exports = {
   createTable,
   listTables,
-  alterTable,
   dropTable
 }
