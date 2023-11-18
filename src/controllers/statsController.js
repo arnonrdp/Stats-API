@@ -1,11 +1,9 @@
 const pool = require('../db')
-const jwt = require('jsonwebtoken')
 const { validationResult } = require('express-validator')
-const { secret } = require('../middlewares/jwtConfig')
 
-// Route to create or remove a like for a poem
-const createOrRemove = async (req, res) => {
-  const client = await pool.connect()
+// Route to add a new stat to the 'stats' table
+const create = async (req, res) => {
+  const client = await pool.connect() // Connect to the database
 
   try {
     await client.query('BEGIN') // Start a transaction
@@ -16,82 +14,25 @@ const createOrRemove = async (req, res) => {
       return res.status(400).json({ errors: errors.array() })
     }
 
-    const authorizationHeader = req.headers.authorization // Get the Authorization header from the request
+    const { user_id, post_id, clicks, keypresses, mousemovements, scrolls, totaltime } = req.body // Get the title and content from the request body
 
-    if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Bearer token not provided' })
-    }
-
-    const { poem_id } = req.params // Get poem_id from the route parameters
-
-    const parts = req.path.split('/')
-    const type = parts[parts.length - 1] // Get type (like or dislike) from the route path (/like or /dislike)
-    const isLike = type === 'like'
-
-    const token = authorizationHeader.split(' ')[1] // Extract the token (remove "Bearer " prefix)
-    const decoded = jwt.verify(token, secret) // Verify and decode the JWT token
-    const userId = decoded.id // Get the user ID from the decoded JWT token
-
-    // Check if the user has already reacted to the poem
-    const checkReactionQuery = `
-      SELECT id, is_like FROM likes
-      WHERE user_id = $1 AND poem_id = $2
+    const insertQuery = `
+      INSERT INTO stats (created_at, user_id, post_id, clicks, keypresses, mousemovements, scrolls, totaltime)
+      VALUES (NOW(), $1, $2, $3, $4, $5, $6, $7)
+      RETURNING id;
     `
 
-    const checkResult = await client.query(checkReactionQuery, [userId, poem_id])
+    const result = await client.query(insertQuery, [user_id, post_id, clicks, keypresses, mousemovements, scrolls, totaltime])
+    const { id } = result.rows[0]
 
-    if (checkResult.rows.length > 0) {
-      // User has already reacted to the poem, determine the boolean value of the current reaction
-      const currentReaction = checkResult.rows[0]
-      const currentType = currentReaction.is_like // true, false or null
+    await client.query('COMMIT') // Commit the transaction
 
-      if (currentType === isLike) {
-        // Remove the reaction from the database
-        const updateQuery = `
-          UPDATE likes
-          SET is_like = NULL
-          WHERE id = $1
-        `
-
-        await client.query(updateQuery, [currentReaction.id])
-
-        await client.query('COMMIT') // Commit the transaction
-
-        res.status(201).json({ message: `${type} removed successfully` })
-      } else {
-        // Set the reaction to the new value (true or false)
-        const updateQuery = `
-          UPDATE likes
-          SET is_like = $1
-          WHERE id = $2
-        `
-
-        await client.query(updateQuery, [isLike, currentReaction.id])
-
-        await client.query('COMMIT') // Commit the transaction
-
-        res.status(201).json({ message: `Reaction toggled to ${type} successfully` })
-      }
-    } else {
-      // User has not reacted to the poem, create a new entry in likes table
-      const insertQuery = `
-        INSERT INTO likes (user_id, poem_id, is_like, created_at)
-        VALUES ($1, $2, $3, NOW())
-        RETURNING id;
-      `
-
-      const result = await client.query(insertQuery, [userId, poem_id, isLike])
-      const { id } = result.rows[0]
-
-      await client.query('COMMIT') // Commit the transaction
-
-      res.status(201).json({ id, message: `${type} added successfully` })
-    }
+    res.status(201).json({ id, message: 'Stats added successfully' })
   } catch (error) {
     await client.query('ROLLBACK') // Rollback the transaction if an error occurred
 
-    console.error('Error:', error)
-    res.status(500).json({ error: 'Error' })
+    console.error('Error adding stat:', error)
+    res.status(500).json({ error: 'Error adding stat' })
   } finally {
     client.release() // Release the connection to the database
   }
