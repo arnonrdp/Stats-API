@@ -38,6 +38,36 @@ const create = async (req, res) => {
   }
 }
 
+// Route to get all stats from the 'stats' table
+const read = async (req, res) => {
+  const client = await pool.connect() // Connect to the database
+
+  try {
+    const { author } = req.query // Get the author from the request query
+
+    let selectQuery = `
+      SELECT *
+      FROM stats
+    `
+
+    if (author) selectQuery += `WHERE author = '${author}'`
+
+    const result = await client.query(selectQuery)
+
+    if (result.rows.length > 0) {
+      res.status(200).json(result.rows)
+    } else {
+      res.status(404).json({ error: 'No stats found' })
+    }
+  } catch (error) {
+    console.error('Error getting stats:', error)
+    res.status(500).json({ error: 'Error getting stats' })
+  } finally {
+    client.release() // Release the connection to the database
+  }
+}
+
 module.exports = {
-  create
+  create,
+  read
 }
