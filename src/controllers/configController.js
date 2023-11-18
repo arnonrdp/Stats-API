@@ -1,52 +1,32 @@
 const pool = require('../db')
 require('dotenv').config()
 
-// Route to create the 'poems' table
+// Route to create the 'stats' table
 const createTable = async (req, res) => {
   try {
     const client = await pool.connect()
 
-    // Query SQL to create the 'users' table
-    const createUserTableQuery = `
-      CREATE TABLE IF NOT EXISTS users (
+    const createStatsTableQuery = `
+      CREATE TABLE IF NOT EXISTS stats (
         id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        password VARCHAR(255) NOT NULL,
-        created_at TIMESTAMP NOT NULL
+        created_at TIMESTAMP DEFAULT NOW(),
+        user_id VARCHAR(255) NOT NULL,
+        post_id VARCHAR(255) NOT NULL,
+        clicks INT DEFAULT 0,
+        keypresses INT DEFAULT 0,
+        mouseMovements INT DEFAULT 0,
+        scrolls INT DEFAULT 0,
+        totalTime INT DEFAULT 0
       );
     `
 
-    // Query SQL to create the 'poems' table
-    const createPoemsTableQuery = `
-      CREATE TABLE IF NOT EXISTS poems (
-        id SERIAL PRIMARY KEY,
-        user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        content TEXT NOT NULL,
-        created_at TIMESTAMP NOT NULL,
-        title VARCHAR(255) NOT NULL
-      );
-    `
-
-    const createReactionsTableQuery = `
-      CREATE TABLE IF NOT EXISTS likes (
-        id SERIAL PRIMARY KEY,
-        user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        poem_id INT NOT NULL REFERENCES poems(id) ON DELETE CASCADE,
-        created_at TIMESTAMP NOT NULL,
-        is_like BOOLEAN
-      );
-    `
-
-    await client.query(createUserTableQuery)
-    await client.query(createPoemsTableQuery)
-    await client.query(createReactionsTableQuery)
+    await client.query(createStatsTableQuery)
     client.release()
 
-    res.send('"users", "poems", "reaction" tables created successfully')
+    res.send('"stats" table created successfully')
   } catch (error) {
-    console.error('Error creating tables:', error)
-    res.status(500).send('Error creating tables')
+    console.error('Error creating table:', error)
+    res.status(500).send('Error creating table')
   }
 }
 
@@ -72,41 +52,20 @@ const listTables = async (req, res) => {
   }
 }
 
-// Route to add a 'user_id' column to the 'poems' table
-const alterTable = async (req, res) => {
-  try {
-    const client = await pool.connect()
-
-    // Query SQL to add a 'user_id' column to the 'poems' table
-    const alterTableQuery = `
-      ALTER TABLE poems
-      ADD COLUMN IF NOT EXISTS user_id INT;
-    `
-
-    await client.query(alterTableQuery)
-    client.release()
-
-    res.send('"user_id" column added to "poems" table successfully')
-  } catch (error) {
-    console.error('Error adding "user_id" column to "poems" table:', error)
-    res.status(500).send('Error adding "user_id" column to "poems" table')
-  }
-}
-
 const dropTable = async (req, res) => {
   try {
     const client = await pool.connect()
 
-    // Query SQL to drop the 'poems' table
-    const dropTableQuery = 'DROP TABLE IF EXISTS poems;'
+    // Query SQL to drop the 'stats' table
+    const dropTableQuery = 'DROP TABLE IF EXISTS stats;'
 
     await client.query(dropTableQuery)
     client.release()
 
-    res.send('"poems" table dropped successfully')
+    res.send('"stats" table dropped successfully')
   } catch (error) {
-    console.error('Error dropping table "poems":', error)
-    res.status(500).send('Error dropping table "poems"')
+    console.error('Error dropping table "stats":', error)
+    res.status(500).send('Error dropping table "stats"')
   }
 }
 
