@@ -15,7 +15,7 @@ const statsRoutes = require('./routes/statsRoutes')
 const swaggerRoute = require('./routes/swaggerRoute')
 
 app.use('/', swaggerRoute)
-app.use('/v1', authRoutes, statsRoutes, poemRoutes, userRoutes)
+app.use('/v1', statsRoutes)
 // app.use('/config', configRoutes) // Uncomment if you want to use the config routes
 
 app.listen(port, () => {
