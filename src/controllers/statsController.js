@@ -14,7 +14,7 @@ const create = async (req, res) => {
       return res.status(400).json({ errors: errors.array() })
     }
 
-    const { user_id, post_id, clicks, keypresses, mousemovements, scrolls, totaltime } = req.body // Get the title and content from the request body
+    const { user_id, post_id, clicks, keypresses, mousemovements, scrolls, totaltime } = req.body // Get the data from the request body
 
     const insertQuery = `
       INSERT INTO stats (created_at, user_id, post_id, clicks, keypresses, mousemovements, scrolls, totaltime)
@@ -43,14 +43,16 @@ const read = async (req, res) => {
   const client = await pool.connect() // Connect to the database
 
   try {
-    const { author } = req.query // Get the author from the request query
+    const { post_id } = req.query // Get the post_id from the request query
 
     let selectQuery = `
       SELECT *
       FROM stats
     `
 
-    if (author) selectQuery += `WHERE author = '${author}'`
+    if (post_id) {
+      selectQuery += `WHERE post_id = '${post_id}'`
+    }
 
     const result = await client.query(selectQuery)
 
