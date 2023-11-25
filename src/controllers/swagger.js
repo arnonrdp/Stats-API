@@ -34,6 +34,9 @@ const spec = {
         tags: ['Stats'],
         summary: 'Get stats from the database',
         operationId: 'getStats',
+        parameters: [
+          { name: 'post_id', in: 'query', description: 'The id of the entry to get stats for', required: false, schema: { type: 'string' } }
+        ],
         responses: {
           200: {
             description: 'Success',
