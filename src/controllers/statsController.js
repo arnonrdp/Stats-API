@@ -69,7 +69,52 @@ const read = async (req, res) => {
   }
 }
 
+// Route to filter stats for a specific prompt from the 'stats' table
+const summary = async (req, res) => {
+  const client = await pool.connect() // Connect to the database
+
+  try {
+    const { prompt_id } = req.query // Get the prompt_id from the request query
+
+    if (!prompt_id) {
+      return res.status(400).json({ error: 'Prompt ID is required' })
+    }
+    console.log('prompt_id', prompt_id)
+    let selectQuery = `
+      SELECT
+          post_id,
+          COUNT(post_id) AS visits,
+          COUNT(DISTINCT user_id) as visitors,
+          ROUND(AVG(clicks)) as clicks,
+          ROUND(AVG(keypresses)) as keypresses,
+          ROUND(AVG(mousemovements)) as mousemovements,
+          ROUND(AVG(scrolls)) as scrolls,
+          ROUND(AVG(totaltime)) as totaltime
+      FROM
+          stats
+      WHERE
+          post_id LIKE $1 || '%'
+      GROUP BY
+          post_id;
+    `
+    console.log('selectQuery', selectQuery)
+    const result = await client.query(selectQuery, [prompt_id])
+    console.log('result', result)
+    if (result.rows.length > 0) {
+      res.status(200).json(result.rows)
+    } else {
+      res.status(404).json({ error: 'No stats found' })
+    }
+  } catch (error) {
+    console.error('Error getting stats:', error)
+    res.status(500).json({ error: 'Error getting stats' })
+  } finally {
+    client.release() // Release the connection to the database
+  }
+}
+
 module.exports = {
   create,
-  read
+  read,
+  summary
 }
