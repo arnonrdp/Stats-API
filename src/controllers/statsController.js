@@ -79,7 +79,7 @@ const summary = async (req, res) => {
     if (!prompt_id) {
       return res.status(400).json({ error: 'Prompt ID is required' })
     }
-    console.log('prompt_id', prompt_id)
+
     let selectQuery = `
       SELECT
           post_id,
@@ -97,9 +97,9 @@ const summary = async (req, res) => {
       GROUP BY
           post_id;
     `
-    console.log('selectQuery', selectQuery)
+
     const result = await client.query(selectQuery, [prompt_id])
-    console.log('result', result)
+
     if (result.rows.length > 0) {
       res.status(200).json(result.rows)
     } else {
