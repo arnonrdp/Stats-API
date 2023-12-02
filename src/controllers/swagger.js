@@ -45,6 +45,30 @@ const spec = {
           404: { $ref: '#/components/responses/NotFound' }
         }
       }
+    },
+    '/summary': {
+      get: {
+        tags: ['Stats'],
+        summary: 'Get summary stats from the database',
+        operationId: 'getSummary',
+        parameters: [
+          {
+            name: 'prompt_id',
+            in: 'query',
+            description: 'The id of the prompt to get stats for',
+            required: true,
+            schema: { type: 'string' }
+          }
+        ],
+        responses: {
+          200: {
+            description: 'Success',
+            content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Summary' } } } }
+          },
+          400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+          404: { $ref: '#/components/responses/NotFound' }
+        }
+      }
     }
   },
   components: {
@@ -60,6 +84,19 @@ const spec = {
           keypresses: { type: 'integer', example: 14 },
           mousemovements: { type: 'integer', example: 200 },
           scrolls: { type: 'integer', example: 58 },
+          totaltime: { type: 'integer', example: 24 }
+        }
+      },
+      Summary: {
+        type: 'object',
+        properties: {
+          post_id: { type: 'string', example: '2023-11T1699089204478' },
+          visits: { type: 'integer', example: 7 },
+          visitors: { type: 'integer', example: 14 },
+          clicks: { type: 'integer', example: 200 },
+          keypresses: { type: 'integer', example: 58 },
+          mousemovements: { type: 'integer', example: 24 },
+          scrolls: { type: 'integer', example: 24 },
           totaltime: { type: 'integer', example: 24 }
         }
       },
