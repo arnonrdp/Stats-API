@@ -4,7 +4,7 @@
   "description": "Statistics from Celebrity Fanalyzer entries",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "nodemon src/server.js",
     "format": "prettier --write \"**/*.{js,html,md,json}\" --ignore-path .gitignore",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -19,14 +19,21 @@
   },
   "homepage": "https://github.com/globe-and-citizen/stats-api#readme",
   "dependencies": {
+    "@prisma/client": "^5.12.1",
+    "@quixo3/prisma-session-store": "^3.1.13",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "express-basic-auth": "^1.2.1",
     "express-validator": "^7.0.1",
-    "pg": "^8.11.3"
+    "ioredis": "^5.4.1",
+    "layer8_middleware": "^0.0.17",
+    "redis": "^4.6.14"
   },
   "devDependencies": {
-    "prettier": "^3.0.3"
+    "nodemon": "^3.1.0",
+    "prettier": "^3.0.3",
+    "prisma": "^5.12.1"
   },
   "engines": {
     "node": ">=18"
