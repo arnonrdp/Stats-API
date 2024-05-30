@@ -14,7 +14,20 @@ const loggerMiddleware = (req, res, next) => {
 
 app.use(loggerMiddleware)
 // Change origin to localhost:9200 to use in local environment
-app.use(cors({ origin: 'https://celebrityfanalyzer.com/', credentials: true }))
+
+const allowedOrigins = ['https://celebrityfanalyzer.com', 'http://localhost:9200']
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true)
+      } else {
+        callback(new Error('Not allowed by CORS'))
+      }
+    },
+    credentials: true
+  })
+)
 app.use(layer8.tunnel)
 
 const authenticateSwagger = (req, res, next) => {
@@ -54,5 +67,5 @@ app.use('/v1', sharesRoutes)
 app.use('/v1', ratingRoutes)
 
 app.listen(port, async () => {
-  console.log(`Server is listening on http://localhost:${port}`)
+  console.log(`Server is listening on PORT:${port}`)
 })
