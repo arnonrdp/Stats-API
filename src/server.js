@@ -13,7 +13,7 @@ const loggerMiddleware = (req, res, next) => {
 }
 
 app.use(loggerMiddleware)
-app.use(cors())
+app.use(cors({ origin: '*' }))
 app.use(layer8.tunnel)
 
 const authenticateSwagger = (req, res, next) => {
