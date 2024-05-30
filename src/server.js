@@ -1,5 +1,4 @@
 const express = require('express')
-const cors = require('cors')
 const layer8 = require('layer8_middleware')
 const basicAuth = require('express-basic-auth')
 require('dotenv').config()
@@ -8,12 +7,11 @@ const app = express()
 const port = process.env.PORT || 8080
 const swaggerPassword = process.env.SWAGGER_PASSWORD
 
-// Global CORS middleware
 const globalCorsMiddleware = (req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-  res.setHeader('Access-Control-Max-Age', '86400') // 24 hours
+  res.setHeader('Access-Control-Max-Age', '86400')
   next()
 }
 
@@ -25,7 +23,6 @@ const loggerMiddleware = (req, res, next) => {
 }
 
 app.use(loggerMiddleware)
-app.use(layer8.tunnel)
 
 const authenticateSwagger = (req, res, next) => {
   if (req.path.startsWith('/swagger')) {
@@ -40,6 +37,7 @@ const authenticateSwagger = (req, res, next) => {
 
 app.use(authenticateSwagger)
 
+app.use(layer8.tunnel)
 const swaggerRoute = require('./routes/swagger/swaggerRoute')
 const statsRoutes = require('./routes/stats/statistics')
 const topicRoutes = require('./routes/posts/topics')

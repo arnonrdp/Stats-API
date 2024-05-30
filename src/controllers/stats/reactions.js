@@ -13,7 +13,9 @@ const addReaction = async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' })
 
     if (article_id) {
-      const article = await prisma.article.findUnique({})
+      const article = await prisma.article.findUnique({
+        where: { article_id }
+      })
 
       if (!article) return res.status(404).json({ error: 'Article not found' })
 
