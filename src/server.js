@@ -13,21 +13,24 @@ const loggerMiddleware = (req, res, next) => {
 }
 
 app.use(loggerMiddleware)
-// Change origin to localhost:9200 to use in local environment
 
 const allowedOrigins = ['https://celebrityfanalyzer.com', 'http://localhost:9200']
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true)
-      } else {
-        callback(new Error('Not allowed by CORS'))
-      }
-    },
-    credentials: true
-  })
-)
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
+  credentials: true
+}
+
+app.use(cors(corsOptions))
+
+app.options('*', cors(corsOptions))
+
 app.use(layer8.tunnel)
 
 const authenticateSwagger = (req, res, next) => {
@@ -53,9 +56,6 @@ const commentsRoutes = require('./routes/stats/comments')
 const sharesRoutes = require('./routes/stats/shares')
 const ratingRoutes = require('./routes/stats/rating')
 
-app.use('/', (req, res) => {
-  res.status(200).send('No content here. Move out')
-})
 app.use('/swagger', swaggerRoute)
 app.use('/v1', statsRoutes)
 app.use('/v1', topicRoutes)
@@ -65,6 +65,10 @@ app.use('/v1', interactionsRoutes)
 app.use('/v1', commentsRoutes)
 app.use('/v1', sharesRoutes)
 app.use('/v1', ratingRoutes)
+
+app.use('/', (req, res) => {
+  res.status(200).send('No content here. Move out')
+})
 
 app.listen(port, async () => {
   console.log(`Server is listening on PORT:${port}`)
