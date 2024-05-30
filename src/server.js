@@ -13,24 +13,7 @@ const loggerMiddleware = (req, res, next) => {
 }
 
 app.use(loggerMiddleware)
-
-const allowedOrigins = ['https://celebrityfanalyzer.com', 'http://localhost:9200']
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true)
-    } else {
-      callback(new Error('Not allowed by CORS'))
-    }
-  },
-  credentials: true
-}
-
-app.use(cors(corsOptions))
-
-app.options('*', cors(corsOptions))
-
+app.use(cors())
 app.use(layer8.tunnel)
 
 const authenticateSwagger = (req, res, next) => {
