@@ -7,13 +7,24 @@ require('dotenv').config()
 const app = express()
 const port = process.env.PORT || 8080
 const swaggerPassword = process.env.SWAGGER_PASSWORD
+
+// Global CORS middleware
+const globalCorsMiddleware = (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  res.setHeader('Access-Control-Max-Age', '86400') // 24 hours
+  next()
+}
+
+app.use(globalCorsMiddleware)
+
 const loggerMiddleware = (req, res, next) => {
   console.log(`${req.method} - ${req.url}`)
   next()
 }
 
 app.use(loggerMiddleware)
-app.use(cors({ origin: '*' }))
 app.use(layer8.tunnel)
 
 const authenticateSwagger = (req, res, next) => {
