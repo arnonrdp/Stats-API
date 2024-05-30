@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  createdAt     DateTime       @default(now()) @map("created_at")
+  user_id       String?        @unique
+  location      String?
+  articles      Article[]
+  likes         Like[]
+  stats         Stat[]
+  subscriptions Subscription[]
+  comments      Comment[]
+  shares        Share[]
+  Topic         Topic[]
+}
+
+model Topic {
+  id            Int            @id @default(autoincrement())
+  createdAt     DateTime       @default(now()) @map("created_at")
+  user_id       String         @map("user_id")
+  topic_id      String         @unique
+  title         String
+  content       String
+  categories    String[]
+  user          User           @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  articles      Article[]
+  likes         Like[]
+  subscriptions Subscription[]
+  comments      Comment[]
+  shares        Share[]
+  Stat          Stat[]
+}
+
+model Article {
+  id            Int            @id @default(autoincrement())
+  createdAt     DateTime       @default(now()) @map("created_at")
+  article_id    String         @unique
+  user_id       String?
+  title         String
+  content       String
+  categories    String[]
+  user          User?          @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  topic_id      String
+  topics        Topic          @relation(fields: [topic_id], references: [topic_id], onDelete: Cascade)
+  likes         Like[]
+  stats         Stat[]
+  subscriptions Subscription[]
+  comments      Comment[]
+  shares        Share[]
+}
+
+model Like {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now()) @map("created_at")
+  user_id    String   @map("user_id")
+  article_id String?
+  topic_id   String?
+  isLike     Boolean?
+  user       User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  article    Article? @relation(fields: [article_id], references: [article_id], onDelete: Cascade)
+  topic      Topic?   @relation(fields: [topic_id], references: [topic_id], onDelete: Cascade)
+}
+
+model Stat {
+  id             Int      @id @default(autoincrement())
+  createdAt      DateTime @default(now()) @map("created_at")
+  user_id        String   @map("user_id")
+  article_id     String?
+  topic_id       String?
+  clicks         Int      @default(0)
+  keypresses     Int      @default(0)
+  mouseMovements Int      @default(0) @map("mouseMovements")
+  scrolls        Int      @default(0)
+  totalTime      Int      @default(0) @map("totalTime")
+  user           User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  article        Article? @relation(fields: [article_id], references: [article_id], onDelete: Cascade)
+  topic          Topic?   @relation(fields: [topic_id], references: [topic_id], onDelete: Cascade)
+}
+
+model Subscription {
+  id           Int      @id @default(autoincrement())
+  user_id      String   @map("user_id")
+  topic_id     String?
+  article_id   String?
+  isSubscribed Boolean?
+  user         User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  topic        Topic?   @relation(fields: [topic_id], references: [topic_id], onDelete: Cascade)
+  article      Article? @relation(fields: [article_id], references: [article_id], onDelete: Cascade)
+}
+
+model Comment {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now()) @map("created_at")
+  user_id    String?
+  article_id String?
+  topic_id   String?
+  content    String
+  user       User?    @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  article    Article? @relation(fields: [article_id], references: [article_id], onDelete: Cascade)
+  topic      Topic?   @relation(fields: [topic_id], references: [topic_id], onDelete: Cascade)
+}
+
+model Share {
+  id           Int      @id @default(autoincrement())
+  createdAt    DateTime @default(now()) @map("created_at")
+  user_id      String   @map("user_id")
+  article_id   String?
+  topic_id     String?
+  social_media String?  @map("social_media")
+  user         User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  article      Article? @relation(fields: [article_id], references: [article_id], onDelete: Cascade)
+  topic        Topic?   @relation(fields: [topic_id], references: [topic_id], onDelete: Cascade)
+}
+
+model Session {
+  id        String   @id
+  sid       String   @unique
+  data      String
+  expiresAt DateTime
+}

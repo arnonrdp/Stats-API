@@ -1,0 +1,12 @@
+version: "3"
+services:
+  app:
+    build: .
+    ports:
+      - "3000:8080"
+    environment:
+      GCP_HOST: 35.234.100.171
+      GCP_USER: pg-marc
+      GCP_PORT: 5432
+      GCP_PASS: Yn*q~@?DJYfHtex
+      GCP_DATABASE: celebrityfanalyzer:europe-west3:stats-api-try-one
