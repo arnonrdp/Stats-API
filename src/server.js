@@ -1,5 +1,6 @@
 const express = require('express')
 const layer8 = require('layer8_middleware')
+const cors = require('cors')
 const basicAuth = require('express-basic-auth')
 require('dotenv').config()
 
@@ -7,15 +8,7 @@ const app = express()
 const port = process.env.PORT || 8080
 const swaggerPassword = process.env.SWAGGER_PASSWORD
 
-const globalCorsMiddleware = (req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-  res.setHeader('Access-Control-Max-Age', '86400')
-  next()
-}
-
-app.use(globalCorsMiddleware)
+app.use(cors())
 
 const loggerMiddleware = (req, res, next) => {
   console.log(`${req.method} - ${req.url}`)
@@ -58,7 +51,7 @@ app.use('/v1', commentsRoutes)
 app.use('/v1', sharesRoutes)
 app.use('/v1', ratingRoutes)
 
-app.use('/', (req, res) => {
+app.get('/', (req, res) => {
   res.status(200).send('No content here. Move out')
 })
 
