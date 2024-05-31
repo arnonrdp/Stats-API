@@ -8,6 +8,7 @@ const app = express()
 const port = process.env.PORT || 8080
 const swaggerPassword = process.env.SWAGGER_PASSWORD
 
+app.use(express.json())
 app.use(cors())
 
 const loggerMiddleware = (req, res, next) => {
