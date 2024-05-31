@@ -7,29 +7,37 @@ require('dotenv').config()
 const app = express()
 const port = process.env.PORT || 8080
 const swaggerPassword = process.env.SWAGGER_PASSWORD
+const clearUsersPassword = process.env.CLEAR_PASSWORD
 
-// app.use(express.json())
 app.use(cors())
 
 const loggerMiddleware = (req, res, next) => {
   console.log(`${req.method} - ${req.url}`)
+  console.log(`${req.path}`)
   next()
 }
 
 app.use(loggerMiddleware)
 
-const authenticateSwagger = (req, res, next) => {
+const authenticateRoutes = (req, res, next) => {
   if (req.path.startsWith('/swagger')) {
     basicAuth({
       challenge: true,
       users: { admin: swaggerPassword }
+    })(req, res, next)
+  } else if (req.path === '/v1/users/clear' && req.method === 'DELETE') {
+    basicAuth({
+      challenge: true,
+      users: {
+        admin: clearUsersPassword
+      }
     })(req, res, next)
   } else {
     next()
   }
 }
 
-app.use(authenticateSwagger)
+app.use(authenticateRoutes)
 
 app.use(layer8.tunnel)
 const swaggerRoute = require('./routes/swagger/swaggerRoute')
