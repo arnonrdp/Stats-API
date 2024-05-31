@@ -74,7 +74,6 @@ const addUser = async (req, res) => {
       console.log('Returned Cached User, user_id:', user_id)
 
       if (userExists) {
-        // If found current user return
         return res.json({ user_id })
       } else {
         // If user not found in cache add it
@@ -99,7 +98,7 @@ const addUser = async (req, res) => {
       const newUser = await prisma.user.create({
         data: userData
       })
-      res.status(201).json({ id: newUser.article_id, message: 'User created successfully' })
+      res.status(201).json({ id: newUser.data.user_id, message: 'User created successfully' })
     }
     // --------------------
   } catch (e) {
@@ -186,70 +185,58 @@ const clearDatabase = async (req, res) => {
 
 const addAllUsersToDB = async (req, res) => {
   try {
-    let body = ''
-    req.on('data', (chunk) => {
-      body += chunk.toString()
-    })
+    if (!req.body) {
+      return res.status(400).json({ error: 'Request body required' })
+    }
+    // Expecting an array of users in the request body
+    const newUsers = await req.body
+    if (!Array.isArray(newUsers) || newUsers.length === 0) {
+      return res.status(400).json({ error: 'Request body should contain an array of users' })
+    }
 
-    req.on('end', async () => {
-      if (!body) {
-        return res.status(400).json({ error: 'Request body required' })
+    // Retrieve users from Redis
+    const cachedUsers = await RedisClient.get('users')
+
+    if (cachedUsers) {
+      // If cache exists, overwrite it with the new list
+      await RedisClient.set('users', JSON.stringify(newUsers))
+      console.log('Overwritten Redis cache with new users')
+    } else {
+      // If no cache exists, create a new one
+      await RedisClient.set('users', JSON.stringify(newUsers))
+      console.log('Added users to Redis cache')
+    }
+
+    // Collect users to be added to the database
+    const userRecordsToCreate = []
+    for (const user of newUsers) {
+      const { user_id, location } = user
+      const existingUser = await prisma.user.findUnique({ where: { user_id } })
+
+      if (!existingUser) {
+        userRecordsToCreate.push({ user_id, location })
       }
+    }
 
-      let newUsers
-      try {
-        newUsers = JSON.parse(body)
-      } catch (err) {
-        return res.status(400).json({ error: 'Invalid JSON format' })
-      }
-
-      if (!Array.isArray(newUsers) || newUsers.length === 0) {
-        return res.status(400).json({ error: 'Request body should contain an array of users' })
-      }
-
-      // Retrieve users from Redis
-      const cachedUsers = await RedisClient.get('users')
-
-      if (cachedUsers) {
-        // If cache exists, overwrite it with the new list
-        await RedisClient.set('users', JSON.stringify(newUsers))
-        console.log('Overwritten Redis cache with new users')
-      } else {
-        // If no cache exists, create a new one
-        await RedisClient.set('users', JSON.stringify(newUsers))
-        console.log('Added users to Redis cache')
-      }
-
-      // Collect users to be added to the database
-      const userRecordsToCreate = []
-      for (const user of newUsers) {
-        const { user_id, location } = user
-        const existingUser = await prisma.user.findUnique({ where: { user_id } })
-
-        if (!existingUser) {
-          userRecordsToCreate.push({ user_id, location })
-        }
-      }
-
-      // Add users to the database if there are new users
-      if (userRecordsToCreate.length > 0) {
-        await prisma.$transaction(async (prisma) => {
-          await prisma.user.createMany({
-            data: userRecordsToCreate,
-            skipDuplicates: true
-          })
+    // Add users to the database if there are new users
+    if (userRecordsToCreate.length > 0) {
+      await prisma.$transaction(async (prisma) => {
+        await prisma.user.createMany({
+          data: userRecordsToCreate,
+          skipDuplicates: true
         })
+      })
 
-        res.status(201).json({ message: `${userRecordsToCreate.length} users created successfully` })
-      } else {
-        res.send('All users already exist in the database')
-      }
-    })
+      res.status(201).json({ message: `${userRecordsToCreate.length} users created successfully` })
+    } else {
+      res.send('All users already exist in the database')
+    }
   } catch (e) {
     console.error('Error adding users to database:', e)
     res.status(500).json({ error: 'Error adding users to database' })
   }
 }
+
 module.exports = {
   addUser,
   updateUser,
