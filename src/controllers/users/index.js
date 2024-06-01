@@ -112,13 +112,13 @@ const getAllUsers = async (req, res) => {
     const cachedUsers = await RedisClient.get('users')
     if (cachedUsers?.length > 2) {
       console.log('Returned Cached Users List')
-      return res.json({ response: 'OK' })
+      return res.json({ response: 'OK', usersList: JSON.parse(cachedUsers) })
     }
     const usersList = await prisma.user.findMany()
     if (!usersList) return res.status(404).json({ error: 'User list is empty' })
     await RedisClient.set('users', JSON.stringify(usersList))
     console.log('Created users list in Redis')
-    res.status(200).json({ response: 'OK', usersList: usersList.length })
+    res.status(200).json({ response: 'OK', usersList: usersList })
   } catch (e) {
     console.error('Error getting users', e)
     return res.status(500).json({ error: 'Error getting users' })
