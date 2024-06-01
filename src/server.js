@@ -10,7 +10,7 @@ const swaggerPassword = process.env.SWAGGER_PASSWORD
 const clearUsersPassword = process.env.CLEAR_PASSWORD
 
 app.use(cors())
-
+// app.use(express.json())
 const loggerMiddleware = (req, res, next) => {
   console.log(`${req.method} - ${req.url}`)
   console.log(`${req.path}`)
@@ -43,6 +43,7 @@ app.use(layer8.tunnel)
 const swaggerRoute = require('./routes/swagger/swaggerRoute')
 const statsRoutes = require('./routes/stats/statistics')
 const topicRoutes = require('./routes/posts/topics')
+const adsRoutes = require('./routes/posts/advertisements')
 const userRoutes = require('./routes/users/userRoutes')
 const articleRoutes = require('./routes/posts/articles')
 const interactionsRoutes = require('./routes/stats/interactions')
@@ -55,6 +56,7 @@ app.use('/v1', statsRoutes)
 app.use('/v1', topicRoutes)
 app.use('/v1', userRoutes)
 app.use('/v1', articleRoutes)
+app.use('/v1', adsRoutes)
 app.use('/v1', interactionsRoutes)
 app.use('/v1', commentsRoutes)
 app.use('/v1', sharesRoutes)

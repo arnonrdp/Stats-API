@@ -49,11 +49,14 @@ const getPostRating = async (req, res) => {
     if (!id) return res.status(400).json({ error: 'ID is required' })
 
     let stats
+    let entityType
+
     const articleExists = await prisma.article.findUnique({
       where: { article_id: id }
     })
 
     if (articleExists) {
+      entityType = 'article'
       stats = await prisma.stat.findMany({
         where: { article_id: id }
       })
@@ -62,14 +65,26 @@ const getPostRating = async (req, res) => {
         where: { topic_id: id }
       })
 
-      if (!topicExists) {
-        return res.status(404).json({ error: 'ID does not exist' })
-      }
+      if (topicExists) {
+        entityType = 'topic'
+        stats = await prisma.stat.findMany({
+          where: { topic_id: id, article_id: null }
+        })
+      } else {
+        const adExists = await prisma.advertisement.findUnique({
+          where: { ad_id: id }
+        })
+        if (!adExists) {
+          return res.status(404).json({ error: 'ID does not exist' })
+        }
 
-      stats = await prisma.stat.findMany({
-        where: { topic_id: id, article_id: null }
-      })
+        entityType = 'advertisement'
+        stats = await prisma.stat.findMany({
+          where: { ad_id: id }
+        })
+      }
     }
+
     if (stats.length === 0) {
       return res.status(200).json({ response: 'No stats available for the given ID or stats list is empty' })
     }
@@ -97,14 +112,15 @@ const getPostRating = async (req, res) => {
 
     const postRating = Math.min(calculateRating(specificStats, maxStats), 100)
 
-    if (articleExists) {
+    let ratings = []
+    if (entityType === 'article') {
       const articles = await prisma.article.findMany({
         include: {
           stats: true
         }
       })
 
-      const ratings = articles.map((article) => {
+      ratings = articles.map((article) => {
         const articleStats = article.stats.reduce(
           (acc, stat) => {
             acc.clicks += stat.clicks
@@ -123,17 +139,15 @@ const getPostRating = async (req, res) => {
           rating
         }
       })
-
-      res.status(200).json({ postRating, ratings })
-    } else {
+    } else if (entityType === 'topic') {
       const topics = await prisma.topic.findMany({
         include: {
           Stat: true
         }
       })
 
-      const ratings = topics.map((topic) => {
-        const articleStats = topic.Stat.reduce(
+      ratings = topics.map((topic) => {
+        const topicStats = topic.Stat.reduce(
           (acc, stat) => {
             acc.clicks += stat.clicks
             acc.keypresses += stat.keypresses
@@ -145,14 +159,41 @@ const getPostRating = async (req, res) => {
           { clicks: 0, keypresses: 0, mouseMovements: 0, scrolls: 0, totalTime: 0 }
         )
 
-        const rating = Math.min(calculateRating(articleStats, maxStats), 100)
+        const rating = Math.min(calculateRating(topicStats, maxStats), 100)
         return {
           topic_id: topic.topic_id,
           rating
         }
       })
-      res.status(200).json({ postRating, ratings })
+    } else if (entityType === 'advertisement') {
+      const advertisements = await prisma.advertisement.findMany({
+        include: {
+          Stat: true
+        }
+      })
+
+      ratings = advertisements.map((advertisement) => {
+        const adStats = advertisement.Stat.reduce(
+          (acc, stat) => {
+            acc.clicks += stat.clicks
+            acc.keypresses += stat.keypresses
+            acc.mouseMovements += stat.mouseMovements
+            acc.scrolls += stat.scrolls
+            acc.totalTime += stat.totalTime
+            return acc
+          },
+          { clicks: 0, keypresses: 0, mouseMovements: 0, scrolls: 0, totalTime: 0 }
+        )
+
+        const rating = Math.min(calculateRating(adStats, maxStats), 100)
+        return {
+          ad_id: advertisement.ad_id,
+          rating
+        }
+      })
     }
+
+    res.status(200).json({ postRating, ratings })
   } catch (error) {
     console.error('Error calculating post rating:', error)
     res.status(500).json({ error: 'Error calculating post rating' })
