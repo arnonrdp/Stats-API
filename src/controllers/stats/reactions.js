@@ -3,9 +3,9 @@ const prisma = new PrismaClient()
 
 const addReaction = async (req, res) => {
   try {
-    const { user_id, article_id, isLike, topic_id } = req.body
+    const { user_id, article_id, isLike, topic_id, ad_id } = req.body
     if (!user_id) return res.status(400).send('User ID is required')
-    if (!article_id && !topic_id) return res.status(400).send('Article ID or Topic ID is required')
+    if (!article_id && !topic_id && !ad_id) return res.status(400).send('An Id is required')
     const user = await prisma.user.findUnique({
       where: { user_id }
     })
@@ -91,6 +91,45 @@ const addReaction = async (req, res) => {
         })
       }
       return res.status(201).json({ topic_id, message: 'Interaction added successfully' })
+    }
+    if (ad_id) {
+      const ad = await prisma.advertisement.findUnique({
+        where: { ad_id }
+      })
+
+      if (!ad) return res.status(404).json({ error: 'Advertisement not found' })
+
+      const existingInteraction = await prisma.like.findFirst({
+        where: { ad_id, user_id },
+        select: { id: true }
+      })
+
+      if (existingInteraction) {
+        if (isLike === null) {
+          await prisma.like.delete({
+            where: { id: existingInteraction.id }
+          })
+          return res.status(201).json({ ad_id, message: 'Interaction removed successfully' })
+        }
+
+        await prisma.like.update({
+          where: { id: existingInteraction.id },
+          data: {
+            isLike: isLike
+          }
+        })
+        return res.status(201).json({ ad_id, message: 'Interaction updated successfully' })
+      } else {
+        if (isLike === null) return res.status(400).json({ message: 'Like should be a boolean' })
+        await prisma.like.create({
+          data: {
+            user_id,
+            ad_id,
+            isLike
+          }
+        })
+      }
+      return res.status(201).json({ ad_id, message: 'Interaction added successfully' })
     }
   } catch (e) {
     console.log(e)

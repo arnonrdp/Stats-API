@@ -180,103 +180,89 @@ const getMetricsByCountry = async (req, res) => {
 
   try {
     let metrics
-    let articleExists = await prisma.article.findUnique({
+    let entityType
+
+    const articleExists = await prisma.article.findUnique({
       where: { article_id: id }
     })
 
     if (articleExists) {
-      const [usersComments, likesWithUsers] = await Promise.all([
-        prisma.comment.findMany({
-          where: { article_id: id },
-          include: {
-            user: {
-              select: { location: true }
-            }
-          }
-        }),
-        prisma.like.findMany({
-          where: { article_id: id },
-          include: {
-            user: {
-              select: { location: true }
-            }
-          }
-        })
-      ])
-
-      const commentsByCountry = usersComments.reduce((acc, comment) => {
-        const location = comment.user?.location
-        if (location) {
-          acc[location] = acc[location] || { comments: 0, interactions: { likes: 0, dislikes: 0 } }
-          acc[location].comments += 1
-        }
-        return acc
-      }, {})
-
-      likesWithUsers.forEach((like) => {
-        const location = like.user?.location
-        if (location) {
-          commentsByCountry[location] = commentsByCountry[location] || { comments: 0, interactions: { likes: 0, dislikes: 0 } }
-          if (like.isLike) {
-            commentsByCountry[location].interactions.likes += 1
-          } else {
-            commentsByCountry[location].interactions.dislikes += 1
-          }
-        }
-      })
-
-      metrics = commentsByCountry
+      entityType = 'article'
     } else {
-      let topicExists = await prisma.topic.findUnique({
+      const topicExists = await prisma.topic.findUnique({
         where: { topic_id: id }
       })
 
-      if (!topicExists) {
-        return res.status(404).json({ error: 'ID does not exist' })
-      }
-
-      const [usersComments, likesWithUsers] = await Promise.all([
-        prisma.comment.findMany({
-          where: { topic_id: id, article_id: null },
-          include: {
-            user: {
-              select: { location: true }
-            }
-          }
-        }),
-        prisma.like.findMany({
-          where: { topic_id: id, article_id: null },
-          include: {
-            user: {
-              select: { location: true }
-            }
-          }
+      if (topicExists) {
+        entityType = 'topic'
+      } else {
+        const adExists = await prisma.advertisement.findUnique({
+          where: { ad_id: id }
         })
-      ])
 
-      const commentsByCountry = usersComments.reduce((acc, comment) => {
-        const location = comment.user?.location
-        if (location) {
-          acc[location] = acc[location] || { comments: 0, interactions: { likes: 0, dislikes: 0 } }
-          acc[location].comments += 1
+        if (!adExists) {
+          return res.status(404).json({ error: 'ID does not exist' })
         }
-        return acc
-      }, {})
 
-      likesWithUsers.forEach((like) => {
-        const location = like.user?.location
-        if (location) {
-          commentsByCountry[location] = commentsByCountry[location] || { comments: 0, interactions: { likes: 0, dislikes: 0 } }
-          if (like.isLike) {
-            commentsByCountry[location].interactions.likes += 1
-          } else {
-            commentsByCountry[location].interactions.dislikes += 1
+        entityType = 'advertisement'
+      }
+    }
+
+    let commentsFilter = {}
+    let likesFilter = {}
+
+    if (entityType === 'article') {
+      commentsFilter = { article_id: id }
+      likesFilter = { article_id: id }
+    } else if (entityType === 'topic') {
+      commentsFilter = { topic_id: id, article_id: null }
+      likesFilter = { topic_id: id, article_id: null }
+    } else if (entityType === 'advertisement') {
+      commentsFilter = { ad_id: id }
+      likesFilter = { ad_id: id }
+    }
+
+    const [usersComments, likesWithUsers] = await Promise.all([
+      prisma.comment.findMany({
+        where: commentsFilter,
+        include: {
+          user: {
+            select: { location: true }
+          }
+        }
+      }),
+      prisma.like.findMany({
+        where: likesFilter,
+        include: {
+          user: {
+            select: { location: true }
           }
         }
       })
+    ])
 
-      metrics = commentsByCountry
-    }
+    const commentsByCountry = usersComments.reduce((acc, comment) => {
+      const location = comment.user?.location
+      if (location) {
+        acc[location] = acc[location] || { comments: 0, interactions: { likes: 0, dislikes: 0 } }
+        acc[location].comments += 1
+      }
+      return acc
+    }, {})
+
+    likesWithUsers.forEach((like) => {
+      const location = like.user?.location
+      if (location) {
+        commentsByCountry[location] = commentsByCountry[location] || { comments: 0, interactions: { likes: 0, dislikes: 0 } }
+        if (like.isLike) {
+          commentsByCountry[location].interactions.likes += 1
+        } else {
+          commentsByCountry[location].interactions.dislikes += 1
+        }
+      }
+    })
+
+    metrics = commentsByCountry
 
     const formattedResult = Object.keys(metrics).map((country) => ({
       location: country,
@@ -290,6 +276,8 @@ const getMetricsByCountry = async (req, res) => {
     res.status(500).json({ error: 'An error occurred while fetching metrics by country.' })
   }
 }
+
+module.exports = { getMetricsByCountry }
 
 module.exports = {
   getArticleStats,
