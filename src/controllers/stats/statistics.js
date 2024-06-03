@@ -9,9 +9,10 @@ const create = async (req, res) => {
     const errors = validationResult(req)
     if (!errors) return res.status(400).json({ errors: errors.array() })
 
-    const { user_id, id, clicks, keypresses, mouseMovements, scrolls, totalTime } = req.body
+    const { user_id, id, clicks, keypresses, mouseMovements, scrolls, totalTime, type } = req.body
     if (!user_id) return res.status(400).json({ error: 'user_id is required' })
     if (!id) return res.status(400).json({ error: 'ID is required' })
+    if (!type) return res.status(400).json({ error: 'Type is required' })
 
     const user = await prisma.user.findUnique({
       where: { user_id }
@@ -19,86 +20,96 @@ const create = async (req, res) => {
 
     if (!user) return res.status(400).json({ error: 'User Not Found' })
 
-    const article = await prisma.article.findUnique({
-      where: { article_id: id }
-    })
+    let existingStats, statData, entity
 
-    if (article) {
-      const existingArticleStats = await prisma.stat.findFirst({
-        where: { article_id: id, user_id }
+    switch (type) {
+      case 'article':
+        entity = await prisma.article.findUnique({
+          where: { article_id: id }
+        })
+        if (!entity) {
+          console.error('Article entity not found')
+          return res.status(400).json({ error: 'Article Not Found' })
+        }
+        existingStats = await prisma.stat.findFirst({
+          where: { article_id: id, user_id }
+        })
+
+        statData = {
+          user_id,
+          topic_id: entity.topic_id,
+          article_id: id,
+          clicks,
+          keypresses,
+          mouseMovements,
+          scrolls,
+          totalTime
+        }
+        break
+      case 'topic':
+        entity = await prisma.topic.findUnique({
+          where: { topic_id: id }
+        })
+        if (!entity) {
+          console.error('Topic entity not found')
+          return res.status(400).json({ error: 'Topic Not Found' })
+        }
+        existingStats = await prisma.stat.findFirst({
+          where: { topic_id: id, article_id: null, user_id }
+        })
+        statData = {
+          user_id,
+          topic_id: id,
+          article_id: null,
+          clicks,
+          keypresses,
+          mouseMovements,
+          scrolls,
+          totalTime
+        }
+        break
+      case 'advertisement':
+        entity = await prisma.advertisement.findUnique({
+          where: { ad_id: id }
+        })
+        if (!entity) {
+          console.error('Advertisement entity not found')
+          return res.status(400).json({ error: 'Advertisement Not Found' })
+        }
+        existingStats = await prisma.stat.findFirst({
+          where: { ad_id: id, user_id }
+        })
+
+        statData = {
+          user_id,
+          ad_id: id,
+          clicks,
+          keypresses,
+          mouseMovements,
+          scrolls,
+          totalTime
+        }
+        break
+      default:
+        return res.status(400).json({ error: 'Invalid type' })
+    }
+    if (existingStats) {
+      await prisma.stat.update({
+        where: { id: existingStats.id },
+        data: {
+          clicks: existingStats.clicks + clicks,
+          keypresses: existingStats.keypresses + keypresses,
+          mouseMovements: existingStats.mouseMovements + mouseMovements,
+          scrolls: existingStats.scrolls + scrolls,
+          totalTime: existingStats.totalTime + totalTime
+        }
       })
-
-      if (existingArticleStats) {
-        await prisma.stat.update({
-          where: {
-            id: existingArticleStats.id
-          },
-          data: {
-            clicks: existingArticleStats.clicks + clicks,
-            keypresses: existingArticleStats.keypresses + keypresses,
-            mouseMovements: existingArticleStats.mouseMovements + mouseMovements,
-            scrolls: existingArticleStats.scrolls + scrolls,
-            totalTime: existingArticleStats.totalTime + totalTime
-          }
-        })
-        res.status(201).json({ id: existingArticleStats.id, message: 'Stats updated successfully' })
-      } else {
-        const stat = await prisma.stat.create({
-          data: {
-            user_id,
-            topic_id: article.topic_id,
-            article_id: id,
-            clicks,
-            keypresses,
-            mouseMovements,
-            scrolls,
-            totalTime
-          }
-        })
-        res.status(201).json({ id: stat.id, message: 'Stats added successfully' })
-      }
+      console.log('Stats updated successfully')
+      res.status(200).json({ id: existingStats.id, status: 'Stats updated successfully' })
     } else {
-      const topic = await prisma.topic.findUnique({
-        where: { topic_id: id }
-      })
-
-      if (!topic) {
-        return res.status(404).json({ error: 'Id does not exist' })
-      }
-
-      const existingTopicStats = await prisma.stat.findFirst({
-        where: { topic_id: id, article_id: null, user_id }
-      })
-
-      if (existingTopicStats) {
-        await prisma.stat.update({
-          where: {
-            id: existingTopicStats.id
-          },
-          data: {
-            clicks: existingTopicStats.clicks + clicks,
-            keypresses: existingTopicStats.keypresses + keypresses,
-            mouseMovements: existingTopicStats.mouseMovements + mouseMovements,
-            scrolls: existingTopicStats.scrolls + scrolls,
-            totalTime: existingTopicStats.totalTime + totalTime
-          }
-        })
-        res.status(201).json({ id: existingTopicStats.id, message: 'Stats updated successfully' })
-      } else {
-        const stat = await prisma.stat.create({
-          data: {
-            user_id,
-            topic_id: id,
-            article_id: null,
-            clicks,
-            keypresses,
-            mouseMovements,
-            scrolls,
-            totalTime
-          }
-        })
-        res.status(201).json({ id: stat.id, message: 'Stats added successfully' })
-      }
+      const stat = await prisma.stat.create({ data: statData })
+      console.log('Stats added successfully. ID:', stat?.id)
+      res.status(201).json({ id: stat.id, message: 'Stats added successfully' })
     }
   } catch (e) {
     console.error('Error adding stat:', e)
