@@ -99,7 +99,7 @@ const addUser = async (req, res) => {
       const newUser = await prisma.user.create({
         data: userData
       })
-      res.status(201).json({ id: newUser.data.user_id, message: 'User created successfully' })
+      res.status(201).json({ id: newUser.user_id, message: 'User created successfully' })
     }
     // --------------------
   } catch (e) {
