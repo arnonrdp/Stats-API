@@ -74,6 +74,7 @@ const addUser = async (req, res) => {
       console.log('Returned Cached User, user_id:', user_id)
 
       if (userExists) {
+        // If found current user return
         return res.json({ user_id })
       } else {
         // If user not found in cache add it
