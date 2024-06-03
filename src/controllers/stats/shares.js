@@ -31,19 +31,36 @@ const addShare = async (req, res) => {
       const topicExists = await prisma.topic.findUnique({
         where: { topic_id: id }
       })
+      if (topicExists) {
+        await prisma.share.create({
+          data: {
+            user_id,
+            article_id: null,
+            topic_id: id,
+            social_media
+          }
+        })
+        res.status(201).json({ id, message: 'Share added successfully' })
+      } else {
+        const adExists = await prisma.advertisement.findUnique({
+          where: { ad_id: id }
+        })
 
-      if (!topicExists) {
-        return res.status(404).json({ error: 'Id does not exist' })
-      }
-      await prisma.share.create({
-        data: {
-          user_id,
-          article_id: null,
-          topic_id: id,
-          social_media
+        if (adExists) {
+          await prisma.share.create({
+            data: {
+              user_id,
+              article_id: null,
+              topic_id: null,
+              ad_id: id,
+              social_media
+            }
+          })
+          res.status(201).json({ id, message: 'Share added successfully' })
+        } else {
+          return res.status(404).json({ error: 'ID does not exist' })
         }
-      })
-      res.status(201).json({ id, message: 'Share added successfully' })
+      }
     }
   } catch (e) {
     console.log(e)
