@@ -34,18 +34,36 @@ const addComment = async (req, res) => {
         where: { topic_id: id }
       })
 
-      if (!topicExists) {
-        return res.status(404).json({ error: 'Id does not exist' })
-      }
-      const newComment = await prisma.comment.create({
-        data: {
-          article_id: null,
-          topic_id: id,
-          user_id,
-          content
+      if (topicExists) {
+        const newComment = await prisma.comment.create({
+          data: {
+            article_id: null,
+            topic_id: id,
+            user_id,
+            content
+          }
+        })
+        res.status(200).json({ comment: newComment })
+      } else {
+        const adExists = await prisma.advertisement.findUnique({
+          where: { ad_id: id }
+        })
+
+        if (adExists) {
+          const newComment = await prisma.comment.create({
+            data: {
+              article_id: null,
+              topic_id: null,
+              ad_id: id,
+              user_id,
+              content
+            }
+          })
+          res.status(200).json({ comment: newComment })
+        } else {
+          return res.status(404).json({ error: 'ID does not exist' })
         }
-      })
-      res.status(200).json({ comment: newComment })
+      }
     }
   } catch (e) {
     console.error(e)
@@ -80,20 +98,36 @@ const getAllArticleComments = async (req, res) => {
         where: { topic_id: id }
       })
 
-      if (!topicExists) {
-        return res.status(404).json({ error: 'Id does not exist' })
-      }
-
-      comments = await prisma.comment.findMany({
-        where: { topic_id: id, article_id: null },
-        include: {
-          user: {
-            select: {
-              location: true
+      if (topicExists) {
+        comments = await prisma.comment.findMany({
+          where: { topic_id: id, article_id: null },
+          include: {
+            user: {
+              select: {
+                location: true
+              }
             }
           }
+        })
+      } else {
+        const adExists = await prisma.advertisement.findUnique({
+          where: { ad_id: id }
+        })
+        if (adExists) {
+          comments = await prisma.comment.findMany({
+            where: { ad_id: id, article_id: null, topic_id: null },
+            include: {
+              user: {
+                select: {
+                  location: true
+                }
+              }
+            }
+          })
+        } else {
+          return res.status(404).json({ error: 'ID does not exist' })
         }
-      })
+      }
     }
 
     const groupedComments = comments.reduce((acc, curr) => {
@@ -108,7 +142,7 @@ const getAllArticleComments = async (req, res) => {
     return res.status(200).json({ comments: groupedComments })
   } catch (e) {
     console.error(e)
-    res.status(500).json({ error: 'Error getting article comments' })
+    res.status(500).json({ error: 'Error getting comments' })
   }
 }
 
