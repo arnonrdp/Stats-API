@@ -23,28 +23,28 @@ const createTopic = async (req, res) => {
       topic_id,
       categories
     }
-    // REDIS
-    const cachedTopics = await RedisClient.get('allTopics')
-    if (cachedTopics) {
-      const topics = JSON.parse(cachedTopics)
-      // If cached articles exist search for current topic_id
-      const topicExists = topics.find((topic) => topic.topic_id === topic_id)
-      console.log('Returned Cached topic, topic_ip:', topic_id)
-
-      if (topicExists) {
-        // If found current topic return
-        return res.json(topicExists)
-      } else {
-        // If topic not found in cache add it
-        topics.push(newTopicData)
-        await RedisClient.set('allTopics', JSON.stringify(topics))
-        console.log('Added new topic to Redis, topic_id:', topic_id)
-      }
-    } else {
-      // If no cache exists, create a new one
-      await RedisClient.set('allTopics', JSON.stringify([newTopicData]))
-      console.log('Added topic to Redis cache')
-    }
+    // // REDIS
+    // const cachedTopics = await RedisClient.get('allTopics')
+    // if (cachedTopics) {
+    //   const topics = JSON.parse(cachedTopics)
+    //   // If cached articles exist search for current topic_id
+    //   const topicExists = topics.find((topic) => topic.topic_id === topic_id)
+    //   console.log('Returned Cached topic, topic_ip:', topic_id)
+    //
+    //   if (topicExists) {
+    //     // If found current topic return
+    //     return res.json(topicExists)
+    //   } else {
+    //     // If topic not found in cache add it
+    //     topics.push(newTopicData)
+    //     await RedisClient.set('allTopics', JSON.stringify(topics))
+    //     console.log('Added new topic to Redis, topic_id:', topic_id)
+    //   }
+    // } else {
+    //   // If no cache exists, create a new one
+    //   await RedisClient.set('allTopics', JSON.stringify([newTopicData]))
+    //   console.log('Added topic to Redis cache')
+    // }
     // --------------------
     // DB
     const existingTopic = await prisma.topic.findUnique({
