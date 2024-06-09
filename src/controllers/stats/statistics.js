@@ -190,7 +190,6 @@ const getMetricsByCountry = async (req, res) => {
   if (!id) return res.status(404).json({ error: 'ID is required' })
 
   try {
-    let metrics
     let entityType
 
     const articleExists = await prisma.article.findUnique({
@@ -221,19 +220,23 @@ const getMetricsByCountry = async (req, res) => {
 
     let commentsFilter = {}
     let likesFilter = {}
+    let sharesFilter = {}
 
     if (entityType === 'article') {
       commentsFilter = { article_id: id }
       likesFilter = { article_id: id }
+      sharesFilter = { article_id: id }
     } else if (entityType === 'topic') {
       commentsFilter = { topic_id: id, article_id: null }
       likesFilter = { topic_id: id, article_id: null }
+      sharesFilter = { topic_id: id, article_id: null }
     } else if (entityType === 'advertisement') {
       commentsFilter = { ad_id: id }
       likesFilter = { ad_id: id }
+      sharesFilter = { ad_id: id }
     }
 
-    const [usersComments, likesWithUsers] = await Promise.all([
+    const [comments, likes, shares] = await Promise.all([
       prisma.comment.findMany({
         where: commentsFilter,
         include: {
@@ -249,36 +252,51 @@ const getMetricsByCountry = async (req, res) => {
             select: { location: true }
           }
         }
+      }),
+      prisma.share.findMany({
+        where: sharesFilter,
+        include: {
+          user: {
+            select: { location: true }
+          }
+        }
       })
     ])
 
-    const commentsByCountry = usersComments.reduce((acc, comment) => {
+    const metricsByCountry = comments.reduce((acc, comment) => {
       const location = comment.user?.location
       if (location) {
-        acc[location] = acc[location] || { comments: 0, interactions: { likes: 0, dislikes: 0 } }
+        acc[location] = acc[location] || { comments: 0, interactions: { likes: 0, dislikes: 0 }, shares: 0 }
         acc[location].comments += 1
       }
       return acc
     }, {})
 
-    likesWithUsers.forEach((like) => {
+    likes.forEach((like) => {
       const location = like.user?.location
       if (location) {
-        commentsByCountry[location] = commentsByCountry[location] || { comments: 0, interactions: { likes: 0, dislikes: 0 } }
+        metricsByCountry[location] = metricsByCountry[location] || { comments: 0, interactions: { likes: 0, dislikes: 0 }, shares: 0 }
         if (like.isLike) {
-          commentsByCountry[location].interactions.likes += 1
+          metricsByCountry[location].interactions.likes += 1
         } else {
-          commentsByCountry[location].interactions.dislikes += 1
+          metricsByCountry[location].interactions.dislikes += 1
         }
       }
     })
 
-    metrics = commentsByCountry
+    shares.forEach((share) => {
+      const location = share.user?.location
+      if (location) {
+        metricsByCountry[location] = metricsByCountry[location] || { comments: 0, interactions: { likes: 0, dislikes: 0 }, shares: 0 }
+        metricsByCountry[location].shares += 1
+      }
+    })
 
-    const formattedResult = Object.keys(metrics).map((country) => ({
+    const formattedResult = Object.keys(metricsByCountry).map((country) => ({
       location: country,
-      comments: metrics[country].comments,
-      interactions: metrics[country].interactions
+      comments: metricsByCountry[country].comments,
+      interactions: metricsByCountry[country].interactions,
+      shares: metricsByCountry[country].shares
     }))
 
     res.status(200).json({ response: formattedResult })
@@ -287,8 +305,6 @@ const getMetricsByCountry = async (req, res) => {
     res.status(500).json({ error: 'An error occurred while fetching metrics by country.' })
   }
 }
-
-module.exports = { getMetricsByCountry }
 
 module.exports = {
   getArticleStats,
