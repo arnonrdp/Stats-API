@@ -66,27 +66,27 @@ const addUser = async (req, res) => {
       location
     }
 
-    const cachedUsers = await RedisClient.get('users')
-    if (cachedUsers) {
-      const users = JSON.parse(cachedUsers)
-      // If cached articles exist search for current article_id
-      const userExists = users.find((user) => user.user_id === user_id)
-      console.log('Returned Cached User, user_id:', user_id)
-
-      if (userExists) {
-        // If found current user return
-        return res.json({ user_id })
-      } else {
-        // If user not found in cache add it
-        users.push(userData)
-        await RedisClient.set('users', JSON.stringify(users))
-        console.log('Added new user to Redis, user_id:', user_id)
-      }
-    } else {
-      // If no cache exists, create a new one
-      await RedisClient.set('users', JSON.stringify([userData]))
-      console.log('Added users to Redis cache')
-    }
+    // const cachedUsers = await RedisClient.get('users')
+    // if (cachedUsers) {
+    //   const users = JSON.parse(cachedUsers)
+    //   // If cached articles exist search for current article_id
+    //   const userExists = users.find((user) => user.user_id === user_id)
+    //   console.log('Returned Cached User, user_id:', user_id)
+    //
+    //   if (userExists) {
+    //     // If found current user return
+    //     return res.json({ user_id })
+    //   } else {
+    //     // If user not found in cache add it
+    //     users.push(userData)
+    //     await RedisClient.set('users', JSON.stringify(users))
+    //     console.log('Added new user to Redis, user_id:', user_id)
+    //   }
+    // } else {
+    //   // If no cache exists, create a new one
+    //   await RedisClient.set('users', JSON.stringify([userData]))
+    //   console.log('Added users to Redis cache')
+    // }
 
     // DB
     const existingUser = await prisma.user.findUnique({
@@ -110,15 +110,15 @@ const addUser = async (req, res) => {
 
 const getAllUsers = async (req, res) => {
   try {
-    const cachedUsers = await RedisClient.get('users')
-    if (cachedUsers?.length > 2) {
-      console.log('Returned Cached Users List')
-      return res.json({ response: 'OK', usersList: JSON.parse(cachedUsers) })
-    }
+    // const cachedUsers = await RedisClient.get('users')
+    // if (cachedUsers?.length > 2) {
+    //   console.log('Returned Cached Users List')
+    //   return res.json({ response: 'OK', usersList: JSON.parse(cachedUsers) })
+    // }
     const usersList = await prisma.user.findMany()
     if (!usersList) return res.status(404).json({ error: 'User list is empty' })
-    await RedisClient.set('users', JSON.stringify(usersList))
-    console.log('Created users list in Redis')
+    // await RedisClient.set('users', JSON.stringify(usersList))
+    // console.log('Created users list in Redis')
     res.status(200).json({ response: 'OK', usersList: usersList })
   } catch (e) {
     console.error('Error getting users', e)
@@ -137,7 +137,6 @@ const getUserById = async (req, res) => {
     })
 
     if (!user) return res.status(404).json({ error: 'User not found' })
-    // const { password, ...userData } = user
     res.status(200).json(user)
   } catch (e) {
     console.error('Error getting user:', e)
@@ -196,17 +195,17 @@ const addAllUsersToDB = async (req, res) => {
     }
 
     // Retrieve users from Redis
-    const cachedUsers = await RedisClient.get('users')
+    // const cachedUsers = await RedisClient.get('users')
 
-    if (cachedUsers) {
-      // If cache exists, overwrite it with the new list
-      await RedisClient.set('users', JSON.stringify(newUsers))
-      console.log('Overwritten Redis cache with new users')
-    } else {
-      // If no cache exists, create a new one
-      await RedisClient.set('users', JSON.stringify(newUsers))
-      console.log('Added users to Redis cache')
-    }
+    // if (cachedUsers) {
+    //   // If cache exists, overwrite it with the new list
+    //   await RedisClient.set('users', JSON.stringify(newUsers))
+    //   console.log('Overwritten Redis cache with new users')
+    // } else {
+    //   // If no cache exists, create a new one
+    //   await RedisClient.set('users', JSON.stringify(newUsers))
+    //   console.log('Added users to Redis cache')
+    // }
 
     // Collect users to be added to the database
     const userRecordsToCreate = []
