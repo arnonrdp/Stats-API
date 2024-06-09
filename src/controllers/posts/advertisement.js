@@ -23,7 +23,7 @@ const createAd = async (req, res) => {
       title,
       content,
       ad_id,
-      budget,
+      budget: Number(budget),
       duration
     }
     // REDIS
