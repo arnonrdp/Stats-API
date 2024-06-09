@@ -5,17 +5,33 @@ const prisma = new PrismaClient()
 const createArticle = async (req, res) => {
   try {
     const { user_id, title, content, topic_id, article_id } = req.body
-    if (!user_id) return res.status(400).json({ error: 'user_id is required' })
-    if (!title) return res.status(400).json({ error: 'title is required' })
-    if (!content) return res.status(400).json({ error: 'content is required' })
-    if (!topic_id) return res.status(400).json({ error: 'topic_id is required' })
-    if (!article_id) return res.status(400).json({ error: 'article_id is required' })
+    if (!user_id) {
+      console.error('user_id is required')
+      return res.status(400).json({ error: 'user_id is required' })
+    }
+    if (!title) {
+      console.error('title is required')
+      return res.status(400).json({ error: 'title is required' })
+    }
+    if (!content) {
+      console.error('content is required')
+      return res.status(400).json({ error: 'content is required' })
+    }
+    if (!topic_id) {
+      console.error('topic_id is required')
+      return res.status(400).json({ error: 'topic_id is required' })
+    }
+    if (!article_id) {
+      console.error('article_id is required')
+      return res.status(400).json({ error: 'article_id is required' })
+    }
 
     const topic = await prisma.topic.findUnique({
       where: { topic_id }
     })
 
     if (!topic) {
+      console.error('Topic not found')
       return res.status(404).json({ error: 'Topic not found' })
     }
 
@@ -24,6 +40,7 @@ const createArticle = async (req, res) => {
     })
 
     if (!user) {
+      console.error('User not found')
       return res.status(400).json({ error: 'User not found' })
     }
 
@@ -41,10 +58,10 @@ const createArticle = async (req, res) => {
       const articles = JSON.parse(cachedArticles)
       // If cached articles exist search for current article_id
       const articleExists = articles.find((article) => article.article_id === article_id)
-      console.log('Returned Cached Article, article_id:', article_id)
 
       if (articleExists) {
         // If found current article return
+        console.log('Returned Cached Article, article_id:', article_id)
         return res.json({ ok: 'article exists in cache' })
       } else {
         // If article not found in cache add it
@@ -55,7 +72,7 @@ const createArticle = async (req, res) => {
     } else {
       // If no cache exists, create a new one
       await RedisClient.set('allArticles', JSON.stringify([newArticleData]))
-      console.log('Added article to Redis cache')
+      console.log('New articles set. Added article to Redis cache')
     }
     // --------------------
 
@@ -65,11 +82,13 @@ const createArticle = async (req, res) => {
     })
 
     if (existingArticle) {
+      console.log('Returned existing article, article_id:', article_id)
       res.json({ ok: 'article exists in db' })
     } else {
       const newArticle = await prisma.article.create({
         data: newArticleData
       })
+      console.log('Created new article', newArticle?.article_id)
       res.status(201).json({ id: newArticle.article_id, message: 'Article created successfully' })
     }
     // --------------------
