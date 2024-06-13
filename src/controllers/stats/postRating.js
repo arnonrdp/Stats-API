@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client')
+const RedisClient = require('../../redis')
 const prisma = new PrismaClient()
 
 const calculateRating = (postStats, maxStats) => {
@@ -44,9 +45,19 @@ const calculateRating = (postStats, maxStats) => {
 
 const getPostRating = async (req, res) => {
   if (!req.body) return res.status(400).send('Please use request-body')
+  const { id } = req.body
+
+  if (!id) return res.status(400).json({ error: 'ID is required' })
+
+  const redisKey = `postRaging:${id}`
+  const cacheExpiry = 600
+
   try {
-    const { id } = req.body
-    if (!id) return res.status(400).json({ error: 'ID is required' })
+    const cachedRating = await RedisClient.json.get(redisKey)
+    if (cachedRating) {
+      console.log('Post rating returned from Redis')
+      return res.status(200).json(cachedRating)
+    }
 
     let stats
     let entityType
@@ -193,7 +204,13 @@ const getPostRating = async (req, res) => {
       })
     }
 
-    res.status(200).json({ postRating, ratings })
+    const ratingData = { postRating, ratings }
+
+    await RedisClient.json.set(redisKey, '$', ratingData)
+    await RedisClient.expire(redisKey, cacheExpiry)
+    console.log('Post rating added to Redis')
+
+    res.status(200).json(ratingData)
   } catch (error) {
     console.error('Error calculating post rating:', error)
     res.status(500).json({ error: 'Error calculating post rating' })
