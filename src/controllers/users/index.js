@@ -71,6 +71,7 @@ const addUser = async (req, res) => {
     const redisUser = await RedisClient.json.get(redisKey)
     //If user exists in redis, return it
     if (redisUser) {
+      console.log('User returned from Redis')
       return res.status(200).json(redisUser)
     }
 
@@ -81,7 +82,9 @@ const addUser = async (req, res) => {
     })
 
     if (existingUser) {
-      await RedisClient.json.set(redisKey, '$', existingUser)
+      await RedisClient.json.set(redisKey, '$', existingUser).then(() => {
+        console.log('Existing DB user added to Redis')
+      })
       return res.json({ user_id })
     }
 
@@ -89,7 +92,10 @@ const addUser = async (req, res) => {
     const newUser = await prisma.user.create({
       data: userData
     })
-    await RedisClient.json.set(redisKey, '$', newUser)
+    await RedisClient.json.set(redisKey, '$', newUser).then(() => {
+      console.log('Created new user in Redis')
+    })
+    console.log('Created new user in DB')
     return res.status(201).json({ id: newUser.user_id, message: 'User created successfully' })
 
     // --------------------
