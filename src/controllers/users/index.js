@@ -65,46 +65,37 @@ const addUser = async (req, res) => {
       user_id,
       location
     }
+    const redisKey = `user:${user_id}`
 
-    // const cachedUsers = await RedisClient.get('users')
-    // if (cachedUsers) {
-    //   const users = JSON.parse(cachedUsers)
-    //   // If cached articles exist search for current article_id
-    //   const userExists = users.find((user) => user.user_id === user_id)
-    //   console.log('Returned Cached User, user_id:', user_id)
-    //
-    //   if (userExists) {
-    //     // If found current user return
-    //     return res.json({ user_id })
-    //   } else {
-    //     // If user not found in cache add it
-    //     users.push(userData)
-    //     await RedisClient.set('users', JSON.stringify(users))
-    //     console.log('Added new user to Redis, user_id:', user_id)
-    //   }
-    // } else {
-    //   // If no cache exists, create a new one
-    //   await RedisClient.set('users', JSON.stringify([userData]))
-    //   console.log('Added users to Redis cache')
-    // }
+    // REDIS
+    const redisUser = await RedisClient.json.get(redisKey)
+    //If user exists in redis, return it
+    if (redisUser) {
+      return res.status(200).json(redisUser)
+    }
 
+    // If no user in redis, check if user exists in db and add it to redis
     // DB
     const existingUser = await prisma.user.findUnique({
       where: { user_id }
     })
 
     if (existingUser) {
-      res.json({ user_id })
-    } else {
-      const newUser = await prisma.user.create({
-        data: userData
-      })
-      res.status(201).json({ id: newUser.user_id, message: 'User created successfully' })
+      await RedisClient.json.set(redisKey, '$', existingUser)
+      return res.json({ user_id })
     }
+
+    // If no user in db, add it to db and redis
+    const newUser = await prisma.user.create({
+      data: userData
+    })
+    await RedisClient.json.set(redisKey, '$', newUser)
+    return res.status(201).json({ id: newUser.user_id, message: 'User created successfully' })
+
     // --------------------
   } catch (e) {
     console.error('Error creating user:', e)
-    res.status(500).json({ error: 'Error creating user' })
+    return res.status(500).json({ error: 'Error creating user' })
   }
 }
 
