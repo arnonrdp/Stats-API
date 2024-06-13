@@ -49,7 +49,7 @@ const getPostRating = async (req, res) => {
 
   if (!id) return res.status(400).json({ error: 'ID is required' })
 
-  const redisKey = `postRaging:${id}`
+  const redisKey = `postRating:${id}`
   const cacheExpiry = 600
 
   try {
