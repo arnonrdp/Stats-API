@@ -143,6 +143,9 @@ const getArticleStats = async (req, res) => {
           {
             topic_id: id,
             article_id: null
+          },
+          {
+            ad_id: id
           }
         ]
       }
