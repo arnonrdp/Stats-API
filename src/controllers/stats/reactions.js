@@ -11,7 +11,7 @@ const addReaction = async (req, res) => {
     })
 
     if (!user) {
-      console.log('User not found. ID:', user_id)
+      console.error('User not found. ID:', user_id)
       return res.status(404).json({ error: 'User not found' })
     }
 
@@ -21,7 +21,7 @@ const addReaction = async (req, res) => {
       })
 
       if (!article) {
-        console.log('Article not found. ID:', article_id)
+        console.error('Article not found. ID:', article_id)
         return res.status(404).json({ error: 'Article not found' })
       }
 
@@ -49,7 +49,7 @@ const addReaction = async (req, res) => {
         return res.status(201).json({ article_id, message: 'Interaction updated successfully' })
       } else {
         if (isLike === null) {
-          console.log('Interaction should be a boolean')
+          console.error('Interaction should be a boolean')
           return res.status(400).json({ message: 'Interaction should be a boolean' })
         }
         await prisma.like.create({
@@ -71,7 +71,7 @@ const addReaction = async (req, res) => {
       })
 
       if (!topic) {
-        console.log('Topic not found. ID:', topic_id)
+        console.error('Topic not found. ID:', topic_id)
         return res.status(404).json({ error: 'Topic not found' })
       }
 
@@ -116,7 +116,7 @@ const addReaction = async (req, res) => {
       })
 
       if (!ad) {
-        console.log('Advertisement not found. ID:', ad_id)
+        console.error('Advertisement not found. ID:', ad_id)
         return res.status(404).json({ error: 'Advertisement not found' })
       }
 
@@ -156,7 +156,7 @@ const addReaction = async (req, res) => {
       return res.status(201).json({ ad_id, message: 'Interaction added successfully' })
     }
   } catch (e) {
-    console.log(e)
+    console.error(e)
     res.status(500).json({ error: 'Error adding interaction' })
   }
 }
