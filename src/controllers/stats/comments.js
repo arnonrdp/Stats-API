@@ -13,7 +13,10 @@ const addComment = async (req, res) => {
     const user = await prisma.user.findUnique({
       where: { user_id }
     })
-    if (!user) return res.status(404).json({ error: 'User not found' })
+    if (!user) {
+      console.error('User not found. ID:', user_id)
+      return res.status(404).json({ error: 'User not found' })
+    }
 
     const articleExists = await prisma.article.findUnique({
       where: { article_id: id }
@@ -61,6 +64,7 @@ const addComment = async (req, res) => {
           })
           res.status(200).json({ comment: newComment })
         } else {
+          console.error('Nothing found for this ID:', id)
           return res.status(404).json({ error: 'ID does not exist' })
         }
       }
