@@ -69,19 +69,60 @@ const addUser = async (req, res) => {
 
     // REDIS
     const redisUser = await RedisClient.json.get(redisKey)
-    //If user exists in redis, return it
     if (redisUser) {
+      if (redisUser.location === null && location) {
+        redisUser.location = location
+        await RedisClient.json
+          .set(redisKey, '$', redisUser)
+          .then(() => {
+            console.log('Updated location in Redis')
+          })
+          .catch((e) => console.error("Couldn't update redis", e))
+
+        await prisma.user
+          .update({
+            where: { user_id },
+            data: { location }
+          })
+          .then(() => {
+            console.log('User location updated in DB')
+          })
+          .catch((e) => console.error("Couldn't update db user location", e))
+        console.log('Returned updated user')
+        return res.status(200).json(redisUser)
+      }
       console.log('User returned from Redis')
       return res.status(200).json(redisUser)
     }
 
-    // If no user in redis, check if user exists in db and add it to redis
     // DB
     const existingUser = await prisma.user.findUnique({
       where: { user_id }
     })
 
     if (existingUser) {
+      if (existingUser.location === null && location) {
+        existingUser.location = location
+        await RedisClient.json
+          .set(redisKey, '$', existingUser)
+          .then(() => {
+            console.log('Updated location in Redis')
+          })
+          .catch((e) => console.error("Couldn't update redis", e))
+
+        await prisma.user
+          .update({
+            where: { user_id },
+            data: { location }
+          })
+          .then(() => {
+            console.log('User location updated in DB')
+          })
+          .catch((e) => console.error("Couldn't update db user location", e))
+        console.log('Returned updated user')
+        return res.status(200).json(existingUser)
+      }
+
       await RedisClient.json.set(redisKey, '$', existingUser).then(() => {
         console.log('Existing DB user added to Redis')
       })
