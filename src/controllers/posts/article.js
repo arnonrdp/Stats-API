@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client')
 const RedisClient = require('../../redis')
 const prisma = new PrismaClient()
+const userController = require('../../controllers/users')
 
 const createArticle = async (req, res) => {
   try {
@@ -35,13 +36,23 @@ const createArticle = async (req, res) => {
       return res.status(404).json({ error: 'Topic not found' })
     }
 
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { user_id }
     })
 
     if (!user) {
-      console.error('User not found')
-      return res.status(400).json({ error: 'User not found' })
+      const addUserReq = {
+        body: { user_id }
+      }
+      const addUserRes = {
+        status: () => ({
+          json: (data) => data
+        })
+      }
+      const addUserResult = await userController.addUser(addUserReq, addUserRes)
+      if (addUserResult.error) {
+        return res.status(500).json({ error: 'Error creating user: createArticle controller' })
+      }
     }
 
     const newArticleData = {
@@ -51,30 +62,6 @@ const createArticle = async (req, res) => {
       topic_id,
       article_id
     }
-
-    // REDIS
-    // const cachedArticles = await RedisClient.get('allArticles')
-    // if (cachedArticles) {
-    //   const articles = JSON.parse(cachedArticles)
-    //   // If cached articles exist search for current article_id
-    //   const articleExists = articles.find((article) => article.article_id === article_id)
-    //
-    //   if (articleExists) {
-    //     // If found current article return
-    //     console.log('Returned Cached Article, article_id:', article_id)
-    //     return res.json({ ok: 'article exists in cache' })
-    //   } else {
-    //     // If article not found in cache add it
-    //     articles.push(newArticleData)
-    //     await RedisClient.set('allArticles', JSON.stringify(articles))
-    //     console.log('Added new article to Redis, article_id:', article_id)
-    //   }
-    // } else {
-    //   // If no cache exists, create a new one
-    //   await RedisClient.set('allArticles', JSON.stringify([newArticleData]))
-    //   console.log('New articles set. Added article to Redis cache')
-    // }
-    // --------------------
 
     // DB
     const existingArticle = await prisma.article.findUnique({

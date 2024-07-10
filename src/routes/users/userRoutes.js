@@ -11,7 +11,6 @@ router.get('/user', userController.getUserById)
 router.patch('/users', userController.updateUser)
 router.delete('/user', userController.deleteUser)
 router.delete('/users/clear', userController.clearDatabase)
-router.get('/users/trace', userController.getUserIp)
 
 router.get('/users/:postType', userController.getUsersPosts)
 
