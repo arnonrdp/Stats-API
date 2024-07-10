@@ -275,17 +275,6 @@ const addAllUsersToDB = async (req, res) => {
   }
 }
 
-const getUserIp = async (req, res) => {
-  try {
-    const response = await fetch('https://www.cloudflare.com/cdn-cgi/trace')
-    const data = await response.text()
-    return res.send(data)
-  } catch (error) {
-    console.error('Error fetching data from Cloudflare trace endpoint:', error)
-    res.status(500).send('Error fetching data from Cloudflare trace endpoint')
-  }
-}
-
 module.exports = {
   addUser,
   updateUser,
@@ -294,6 +283,5 @@ module.exports = {
   getAllUsers,
   getUsersPosts,
   addAllUsersToDB,
-  clearDatabase,
-  getUserIp
+  clearDatabase
 }
