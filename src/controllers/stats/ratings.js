@@ -309,4 +309,24 @@ const getUserRating = async (req, res) => {
   }
 }
 
-module.exports = { getPostRating, getUserRating }
+const trace = (req, res) => {
+  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress
+  const traceInfo = {
+    ip: ip.split(',')[0].trim(), // Handle the case where multiple IPs are forwarded
+    ts: Date.now(),
+    visit_scheme: req.protocol,
+    uag: req.headers['user-agent'],
+    http: req.httpVersion,
+    loc: req.headers['cf-ipcountry'] || 'N/A',
+    tls: req.connection.getCipher ? req.connection.getCipher().version : 'N/A'
+  }
+
+  res.setHeader('Content-Type', 'text/plain')
+  res.send(
+    Object.entries(traceInfo)
+      .map(([key, value]) => `${key}=${value}`)
+      .join('\n')
+  )
+}
+
+module.exports = { getPostRating, getUserRating, trace }
