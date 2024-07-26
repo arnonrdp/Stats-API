@@ -8,6 +8,7 @@ const app = express()
 const port = process.env.PORT || 8080
 const swaggerPassword = process.env.SWAGGER_PASSWORD
 const clearUsersPassword = process.env.CLEAR_PASSWORD
+app.set('trust proxy', true)
 
 app.use(cors())
 // app.use(express.json())
