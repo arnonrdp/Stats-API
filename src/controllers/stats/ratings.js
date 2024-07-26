@@ -1,12 +1,15 @@
 const { PrismaClient } = require('@prisma/client')
 const RedisClient = require('../../redis')
+const express = require('express')
 const path = require('path')
 const { IP2Location } = require('ip2location-nodejs')
 let ip2location = new IP2Location()
 
 const file = path.join(__dirname, 'IP2LOCATION-LITE-DB1.BIN')
 ip2location.open(file)
+const app = express()
 
+app.set('trust proxy', true)
 const prisma = new PrismaClient()
 
 const calculateRating = (postStats, maxStats) => {
@@ -317,12 +320,14 @@ const getUserRating = async (req, res) => {
 }
 
 const trace = (req, res) => {
-  const ipAddress = req.ip || req.connection.remoteAddress
+  const ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress
+  // Clean the IP address if it includes IPv6 prefix
+  const cleanedIp = ipAddress.replace(/^::ffff:/, '')
 
   try {
-    const location = ip2location.getCountryShort(ipAddress)
+    const location = ip2location.getCountryShort(cleanedIp)
     res.status(200).json({
-      ip: ipAddress,
+      ip: cleanedIp,
       country: location
     })
   } catch (error) {
