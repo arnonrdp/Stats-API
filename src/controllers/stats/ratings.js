@@ -317,10 +317,10 @@ const getUserRating = async (req, res) => {
 }
 
 const trace = (req, res) => {
-  const ipAddress = req.socket.remoteAddress || req.ip
+  const ipAddress = req.headers['X-Envoy-External-Address'] || req.connection.remoteAddress
   // Clean the IP address if it includes IPv6 prefix
   const cleanedIp = ipAddress.replace(/^::ffff:/, '')
-
+  console.log(ipAddress)
   try {
     const location = ip2location.getCountryShort(cleanedIp)
     res.status(200).json({
