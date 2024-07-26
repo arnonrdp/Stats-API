@@ -27,6 +27,7 @@
     "express-basic-auth": "^1.2.1",
     "express-validator": "^7.0.1",
     "ioredis": "^5.4.1",
+    "ip2location-nodejs": "^9.6.1",
     "layer8_middleware": "^0.0.17",
     "openai": "^4.51.0",
     "redis": "^4.6.14"

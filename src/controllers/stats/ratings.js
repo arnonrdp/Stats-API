@@ -1,5 +1,12 @@
 const { PrismaClient } = require('@prisma/client')
 const RedisClient = require('../../redis')
+const path = require('path')
+const { IP2Location } = require('ip2location-nodejs')
+let ip2location = new IP2Location()
+
+const file = path.join(__dirname, 'IP2LOCATION-LITE-DB1.BIN')
+ip2location.open(file)
+
 const prisma = new PrismaClient()
 
 const calculateRating = (postStats, maxStats) => {
@@ -310,23 +317,18 @@ const getUserRating = async (req, res) => {
 }
 
 const trace = (req, res) => {
-  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress
-  const traceInfo = {
-    ip: ip.split(',')[0].trim(), // Handle the case where multiple IPs are forwarded
-    ts: Date.now(),
-    visit_scheme: req.protocol,
-    uag: req.headers['user-agent'],
-    http: req.httpVersion,
-    loc: req.headers['cf-ipcountry'] || 'N/A',
-    tls: req.connection.getCipher ? req.connection.getCipher().version : 'N/A'
-  }
+  const ipAddress = req.ip || req.connection.remoteAddress
 
-  res.setHeader('Content-Type', 'text/plain')
-  res.send(
-    Object.entries(traceInfo)
-      .map(([key, value]) => `${key}=${value}`)
-      .join('\n')
-  )
+  try {
+    const location = ip2location.getCountryShort(ipAddress)
+    res.status(200).json({
+      ip: ipAddress,
+      country: location
+    })
+  } catch (error) {
+    console.error('Error getting IP location:', error)
+    res.status(500).json({ error: 'Error getting IP location' })
+  }
 }
 
 module.exports = { getPostRating, getUserRating, trace }
