@@ -318,9 +318,6 @@ const getUserRating = async (req, res) => {
 
 const trace = (req, res) => {
   const ipAddress = req.headers['x-envoy-external-address'] || req.headers['x-forwarded-for']
-  // Clean the IP address if it includes IPv6 prefix
-  console.log(req.headers)
-  console.log(ipAddress)
   try {
     const location = ip2location.getCountryShort(ipAddress)
     res.status(200).json({
