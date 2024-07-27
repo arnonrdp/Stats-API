@@ -103,7 +103,7 @@ const addUser = async (req, res) => {
     })
 
     if (existingUser) {
-      if (existingUser.location === null && location) {
+      if (!existingUser.location.length && location) {
         existingUser.location = location
         await RedisClient.json
           .set(redisKey, '$', existingUser)
