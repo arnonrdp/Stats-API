@@ -70,7 +70,9 @@ const addUser = async (req, res) => {
     // REDIS
     const redisUser = await RedisClient.json.get(redisKey)
     if (redisUser) {
-      if (!redisUser.location && location) {
+      console.log('REDIS LOCATION >>>> ', redisUser.location)
+      console.log('LOCATION RECEIVED >>>> ', location)
+      if (!redisUser.location.length && location) {
         redisUser.location = location
         await RedisClient.json
           .set(redisKey, '$', redisUser)
