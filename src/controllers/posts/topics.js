@@ -23,30 +23,18 @@ const createTopic = async (req, res) => {
       topic_id,
       categories
     }
-    // // REDIS
-    // const cachedTopics = await RedisClient.get('allTopics')
-    // if (cachedTopics) {
-    //   const topics = JSON.parse(cachedTopics)
-    //   // If cached articles exist search for current topic_id
-    //   const topicExists = topics.find((topic) => topic.topic_id === topic_id)
-    //   console.log('Returned Cached topic, topic_ip:', topic_id)
-    //
-    //   if (topicExists) {
-    //     // If found current topic return
-    //     return res.json(topicExists)
-    //   } else {
-    //     // If topic not found in cache add it
-    //     topics.push(newTopicData)
-    //     await RedisClient.set('allTopics', JSON.stringify(topics))
-    //     console.log('Added new topic to Redis, topic_id:', topic_id)
-    //   }
-    // } else {
-    //   // If no cache exists, create a new one
-    //   await RedisClient.set('allTopics', JSON.stringify([newTopicData]))
-    //   console.log('Added topic to Redis cache')
-    // }
-    // --------------------
-    // DB
+
+    const statData = {
+      user_id,
+      topic_id: newTopicData.topic_id,
+      article_id: null,
+      clicks: 0,
+      keypresses: 0,
+      mouseMovements: 0,
+      scrolls: 0,
+      totalTime: 0
+    }
+
     const existingTopic = await prisma.topic.findUnique({
       where: { topic_id }
     })
@@ -54,10 +42,12 @@ const createTopic = async (req, res) => {
     if (existingTopic) {
       res.json(existingTopic)
     } else {
-      const newArticle = await prisma.topic.create({
+      const newTopic = await prisma.topic.create({
         data: newTopicData
       })
-      res.status(201).json({ id: newArticle.topic_id, message: 'Topic created successfully' })
+      const stat = await prisma.stat.create({ data: statData })
+      console.log(`Created new topic and stats data. Topic ID: ${newTopic?.topic_id}, Stats id: ${stat.id}`)
+      res.status(201).json({ id: newTopic.topic_id, message: 'Topic created successfully' })
     }
   } catch (e) {
     console.error('Error adding stat:', e)
@@ -118,9 +108,29 @@ const getTopicArticles = async (req, res) => {
   }
 }
 
+const deleteTopic = async (req, res) => {
+  try {
+    const { topic_id } = req.query
+    const redisKey = `post:${topic_id}`
+    if (!topic_id) return res.status(400).json({ error: 'topic_id is required' })
+    const topic = await prisma.topic.findUnique({
+      where: { topic_id }
+    })
+
+    if (!topic) return res.status(400).json({ error: 'Topic not found' })
+    await prisma.topic.delete({ where: { topic_id } })
+    await RedisClient.json.DEL(redisKey)
+    return res.status(200).json({ message: 'Topic deleted successfully' })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Error deleting topic' })
+  }
+}
+
 module.exports = {
   createTopic,
   getAllTopics,
   getTopic,
-  getTopicArticles
+  getTopicArticles,
+  deleteTopic
 }

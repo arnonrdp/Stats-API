@@ -1,5 +1,4 @@
 const { PrismaClient } = require('@prisma/client')
-// const RedisClient = require('../../redis')
 const prisma = new PrismaClient()
 
 const createAd = async (req, res) => {
@@ -31,6 +30,16 @@ const createAd = async (req, res) => {
       duration
     }
 
+    const statData = {
+      user_id,
+      ad_id: newAdData.ad_id,
+      clicks: 0,
+      keypresses: 0,
+      mouseMovements: 0,
+      scrolls: 0,
+      totalTime: 0
+    }
+
     // Check if ad exists in the database
     const existingAd = await prisma.advertisement.findUnique({
       where: { ad_id }
@@ -43,19 +52,9 @@ const createAd = async (req, res) => {
       const newAd = await prisma.advertisement.create({
         data: newAdData
       })
+      const stat = await prisma.stat.create({ data: statData })
+      console.log(`New ad added to DB. Ad_id: ${newAd.ad_id}, stats id: ${stat.id}`)
       res.status(201).json({ id: newAd.ad_id, message: 'Advertisement added successfully' })
-
-      // // Update the cache
-      // const cachedAds = await RedisClient.get('ads')
-      // if (cachedAds) {
-      //   const advertisements = JSON.parse(cachedAds)
-      //   advertisements.push(newAdData)
-      //   await RedisClient.set('ads', JSON.stringify(advertisements))
-      //   console.log('Added new AD to Redis, ad_id:', ad_id)
-      // } else {
-      //   await RedisClient.set('ads', JSON.stringify([newAdData]))
-      //   console.log('Added ad to Redis cache')
-      // }
     }
   } catch (e) {
     console.error('Error adding ad:', e)

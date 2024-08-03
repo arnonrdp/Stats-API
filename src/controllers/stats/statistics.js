@@ -4,121 +4,62 @@ const { PrismaClient } = require('@prisma/client')
 const prisma = new PrismaClient()
 
 //Route to add a new stat to the 'stats' table
-const create = async (req, res) => {
+const updateStats = async (req, res) => {
   try {
     const errors = validationResult(req)
-    if (!errors) return res.status(400).json({ errors: errors.array() })
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
 
     const { user_id, id, clicks, keypresses, mouseMovements, scrolls, totalTime, type } = req.body
     if (!user_id) return res.status(400).json({ error: 'user_id is required' })
     if (!id) return res.status(400).json({ error: 'ID is required' })
     if (!type) return res.status(400).json({ error: 'Type is required' })
 
-    const user = await prisma.user.findUnique({
-      where: { user_id }
-    })
-
+    const user = await prisma.user.findUnique({ where: { user_id } })
     if (!user) return res.status(400).json({ error: 'User Not Found' })
 
     let existingStats, statData, entity
 
     switch (type) {
       case 'article':
-        entity = await prisma.article.findUnique({
-          where: { article_id: id }
-        })
-        if (!entity) {
-          console.error('Article entity not found')
-          return res.status(400).json({ error: 'Article Not Found' })
-        }
-        existingStats = await prisma.stat.findFirst({
-          where: { article_id: id, user_id }
-        })
-
-        statData = {
-          user_id,
-          topic_id: entity.topic_id,
-          article_id: id,
-          clicks,
-          keypresses,
-          mouseMovements,
-          scrolls,
-          totalTime
-        }
+        entity = await prisma.article.findUnique({ where: { article_id: id } })
+        if (!entity) return res.status(400).json({ error: 'Article Not Found' })
+        existingStats = await prisma.stat.findFirst({ where: { article_id: id, user_id } })
+        statData = { user_id, topic_id: entity.topic_id, article_id: id, clicks, keypresses, mouseMovements, scrolls, totalTime }
         break
       case 'topic':
-        entity = await prisma.topic.findUnique({
-          where: { topic_id: id }
-        })
-        if (!entity) {
-          console.error('Topic entity not found')
-          return res.status(400).json({ error: 'Topic Not Found' })
-        }
-        existingStats = await prisma.stat.findFirst({
-          where: { topic_id: id, article_id: null, user_id }
-        })
-        statData = {
-          user_id,
-          topic_id: id,
-          article_id: null,
-          clicks,
-          keypresses,
-          mouseMovements,
-          scrolls,
-          totalTime
-        }
+        entity = await prisma.topic.findUnique({ where: { topic_id: id } })
+        if (!entity) return res.status(400).json({ error: 'Topic Not Found' })
+        existingStats = await prisma.stat.findFirst({ where: { topic_id: id, article_id: null, user_id } })
+        statData = { user_id, topic_id: id, article_id: null, clicks, keypresses, mouseMovements, scrolls, totalTime }
         break
       case 'advertisement':
-        entity = await prisma.advertisement.findUnique({
-          where: { ad_id: id }
-        })
-        if (!entity) {
-          console.error('Advertisement entity not found')
-          return res.status(400).json({ error: 'Advertisement Not Found' })
-        }
-        existingStats = await prisma.stat.findFirst({
-          where: { ad_id: id, user_id }
-        })
-
-        statData = {
-          user_id,
-          ad_id: id,
-          clicks,
-          keypresses,
-          mouseMovements,
-          scrolls,
-          totalTime
-        }
+        entity = await prisma.advertisement.findUnique({ where: { ad_id: id } })
+        if (!entity) return res.status(400).json({ error: 'Advertisement Not Found' })
+        existingStats = await prisma.stat.findFirst({ where: { ad_id: id, user_id } })
+        statData = { user_id, ad_id: id, clicks, keypresses, mouseMovements, scrolls, totalTime }
         break
       default:
         return res.status(400).json({ error: 'Invalid type' })
     }
-    if (existingStats) {
-      await prisma.stat.update({
-        where: { id: existingStats.id },
-        data: {
-          clicks: existingStats.clicks + clicks,
-          keypresses: existingStats.keypresses + keypresses,
-          mouseMovements: existingStats.mouseMovements + mouseMovements,
-          scrolls: existingStats.scrolls + scrolls,
-          totalTime: existingStats.totalTime + totalTime
-        }
-      })
-      console.log('Stats updated successfully')
-      res.status(200).json({ id: existingStats.id, status: 'Stats updated successfully' })
-    } else {
-      const stat = await prisma.stat.create({ data: statData })
-      console.log('Stats added successfully. ID:', stat?.id)
-      res.status(201).json({ id: stat.id, message: 'Stats added successfully' })
-    }
+    await prisma.stat.update({
+      where: { id: existingStats.id },
+      data: {
+        clicks: existingStats.clicks + clicks,
+        keypresses: existingStats.keypresses + keypresses,
+        mouseMovements: existingStats.mouseMovements + mouseMovements,
+        scrolls: existingStats.scrolls + scrolls,
+        totalTime: existingStats.totalTime + totalTime
+      }
+    })
+    console.log('Stats updated successfully')
+    res.status(200).json({ id: existingStats.id, status: 'Stats updated successfully' })
   } catch (e) {
     console.error('Error adding stat:', e)
     res.status(500).json({ error: 'Error adding stat' })
   }
 }
 
-// Route to get all stats from the 'stats' table by article_id
-const getArticleStats = async (req, res) => {
+const getPostStats = async (req, res) => {
   if (!req.body) return res.status(400).send('Please use request-body')
   try {
     const { id } = req.body
@@ -307,8 +248,8 @@ const getMetricsByCountry = async (req, res) => {
 }
 
 module.exports = {
-  getArticleStats,
-  create,
+  getPostStats,
+  updateStats,
   getAllStats,
   getUsersLocations,
   getMetricsByCountry

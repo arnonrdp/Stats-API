@@ -51,30 +51,16 @@ const createArticle = async (req, res) => {
       topic_id,
       article_id
     }
-
-    // REDIS
-    // const cachedArticles = await RedisClient.get('allArticles')
-    // if (cachedArticles) {
-    //   const articles = JSON.parse(cachedArticles)
-    //   // If cached articles exist search for current article_id
-    //   const articleExists = articles.find((article) => article.article_id === article_id)
-    //
-    //   if (articleExists) {
-    //     // If found current article return
-    //     console.log('Returned Cached Article, article_id:', article_id)
-    //     return res.json({ ok: 'article exists in cache' })
-    //   } else {
-    //     // If article not found in cache add it
-    //     articles.push(newArticleData)
-    //     await RedisClient.set('allArticles', JSON.stringify(articles))
-    //     console.log('Added new article to Redis, article_id:', article_id)
-    //   }
-    // } else {
-    //   // If no cache exists, create a new one
-    //   await RedisClient.set('allArticles', JSON.stringify([newArticleData]))
-    //   console.log('New articles set. Added article to Redis cache')
-    // }
-    // --------------------
+    const statData = {
+      user_id,
+      topic_id: newArticleData.topic_id,
+      article_id: newArticleData.article_id,
+      clicks: 0,
+      keypresses: 0,
+      mouseMovements: 0,
+      scrolls: 0,
+      totalTime: 0
+    }
 
     // DB
     const existingArticle = await prisma.article.findUnique({
@@ -88,7 +74,8 @@ const createArticle = async (req, res) => {
       const newArticle = await prisma.article.create({
         data: newArticleData
       })
-      console.log('Created new article', newArticle?.article_id)
+      const stat = await prisma.stat.create({ data: statData })
+      console.log('Created new article and stats data', newArticle?.article_id, stat.id)
       res.status(201).json({ id: newArticle.article_id, message: 'Article created successfully' })
     }
     // --------------------
@@ -118,6 +105,7 @@ const getAllArticles = async (req, res) => {
 const deleteArticle = async (req, res) => {
   try {
     const { article_id } = req.query
+    const redisKey = `post:${article_id}`
     if (!article_id) return res.status(400).json({ error: 'article_id is required' })
     const article = await prisma.article.findUnique({
       where: { article_id }
@@ -125,6 +113,7 @@ const deleteArticle = async (req, res) => {
 
     if (!article) return res.status(400).json({ error: 'Article not found' })
     await prisma.article.delete({ where: { article_id } })
+    await RedisClient.json.DEL(redisKey)
     return res.status(200).json({ message: 'Article deleted successfully' })
   } catch (e) {
     console.error(e)

@@ -7,5 +7,6 @@ router.post('/topic', topicController.createTopic)
 router.get('/topic', topicController.getTopic)
 router.get('/topics', topicController.getAllTopics)
 router.get('/topic/articles', topicController.getTopicArticles)
+router.delete('/topic', topicController.deleteTopic)
 
 module.exports = router
