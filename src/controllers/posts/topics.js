@@ -3,8 +3,13 @@ const { PrismaClient } = require('@prisma/client')
 const prisma = new PrismaClient()
 
 const createTopic = async (req, res) => {
+  let newTopic
+  let stat
+  let existingTopic
+
   try {
     const { user_id, title, content, categories, topic_id } = req.body
+
     if (!user_id) return res.status(400).json({ error: 'user_id is required' })
     if (!title) return res.status(400).json({ error: 'title is required' })
     if (!content) return res.status(400).json({ error: 'content is required' })
@@ -34,23 +39,42 @@ const createTopic = async (req, res) => {
       totalTime: 0
     }
 
-    const existingTopic = await prisma.topic.findUnique({
-      where: { topic_id }
-    })
+    try {
+      existingTopic = await prisma.topic.findUnique({
+        where: { topic_id }
+      })
+    } catch (e) {
+      console.error("Couldn't search for topic", e)
+    }
 
     if (existingTopic) {
-      res.json(existingTopic)
-    } else {
-      const newTopic = await prisma.topic.create({
+      console.log('Existing topic returned')
+      return res.json(existingTopic)
+    }
+
+    try {
+      newTopic = await prisma.topic.create({
         data: newTopicData
       })
-      const stat = await prisma.stat.create({ data: statData })
-      console.log(`Created new topic and stats data. Topic ID: ${newTopic?.topic_id}, Stats id: ${stat.id}`)
-      res.status(201).json({ id: newTopic.topic_id, message: 'Topic created successfully' })
+    } catch (e) {
+      console.error("Couldn't create new topic in DB", e)
+      return res.status(500).json({ error: "Couldn't create new topic in DB" })
     }
+
+    try {
+      stat = await prisma.stat.create({
+        data: statData
+      })
+    } catch (e) {
+      console.error("Couldn't create stat in DB", e)
+      return res.status(500).json({ error: "Couldn't create stat in DB" })
+    }
+
+    console.log(`Created new topic and stats data. Topic ID: ${newTopic?.topic_id}, Stats id: ${stat.id}`)
+    return res.status(201).json({ id: newTopic.topic_id, message: 'Topic created successfully' })
   } catch (e) {
-    console.error('Error adding stat:', e)
-    res.status(500).json({ error: 'Error creating topic' })
+    console.error('Error adding topic:', e)
+    return res.status(500).json({ error: 'Error creating topic' })
   }
 }
 
