@@ -1,6 +1,13 @@
 const { PrismaClient } = require('@prisma/client')
+const RedisClient = require('../../redis')
+const OpenAI = require('openai')
 
 const prisma = new PrismaClient()
+const openAiApi = process.env.OPEN_AI_API
+
+const openai = new OpenAI({
+  apiKey: openAiApi
+})
 
 const addComment = async (req, res) => {
   try {
@@ -13,7 +20,10 @@ const addComment = async (req, res) => {
     const user = await prisma.user.findUnique({
       where: { user_id }
     })
-    if (!user) return res.status(404).json({ error: 'User not found' })
+    if (!user) {
+      console.error('User not found. ID:', user_id)
+      return res.status(404).json({ error: 'User not found' })
+    }
 
     const articleExists = await prisma.article.findUnique({
       where: { article_id: id }
@@ -61,6 +71,7 @@ const addComment = async (req, res) => {
           })
           res.status(200).json({ comment: newComment })
         } else {
+          console.error('Nothing found for this ID:', id)
           return res.status(404).json({ error: 'ID does not exist' })
         }
       }
@@ -190,8 +201,63 @@ const getArticleCommentsByCountry = async (req, res) => {
   }
 }
 
+const analyze = async (req, res) => {
+  const { id, comments } = req.body
+  if (!id) {
+    console.error('Please use request-body. Id not provided')
+    return res.status(400).send('Please use request-body')
+  }
+  if (!comments) {
+    console.error('Please use request-body. Comments should be provided')
+    return res.status(400).send('Please use request-body')
+  }
+
+  try {
+    const redisKey = `commentAnalysis:${id}`
+    const cacheExpiry = 43200
+
+    const redisPost = await RedisClient.json.get(redisKey)
+
+    if (redisPost) {
+      console.log('Comments analysis returned from Redis')
+      return res.status(200).json({ response: redisPost })
+    }
+    const prompt = comments?.map((comment, index) => index + ': ' + comment).join('\n')
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        {
+          role: 'system',
+          content: 'Analyze comments attitude of article and return a single word answer: "Positive", "Negative", "Neutral" or "Unknown"'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.2,
+      max_tokens: 100,
+      top_p: 1,
+      frequency_penalty: 0,
+      presence_penalty: 0
+    })
+
+    if (response.choices[0].message.content) {
+      await RedisClient.json.set(redisKey, '$', response.choices[0].message.content)
+      await RedisClient.expire(redisKey, cacheExpiry)
+      console.log('Sentiment analysis response:', response.choices[0])
+      return res.status(200).json({ response: response.choices[0].message.content })
+    }
+  } catch (e) {
+    console.error('Error getting comments analysis:', e)
+    res.status(500).json({ error: 'Error getting comments analysis' })
+  }
+}
+
 module.exports = {
   addComment,
   getAllArticleComments,
-  getArticleCommentsByCountry
+  getArticleCommentsByCountry,
+  analyze
 }

@@ -4,6 +4,7 @@ const prisma = new PrismaClient()
 const createAd = async (req, res) => {
   try {
     if (!req.body) {
+      console.log('Not using request body')
       res.status(400).json({ error: 'Please use request body' })
       return
     }
@@ -17,7 +18,9 @@ const createAd = async (req, res) => {
     const user = await prisma.user.findUnique({
       where: { user_id }
     })
+
     if (!user) {
+      console.log('User not found. ID:', user_id)
       return res.status(400).json({ message: 'User Not Found!' })
     }
 
@@ -47,6 +50,7 @@ const createAd = async (req, res) => {
 
     if (existingAd) {
       res.json(existingAd)
+      console.log('Returned ad from DB')
     } else {
       // Add new ad to the database
       const newAd = await prisma.advertisement.create({

@@ -1,4 +1,12 @@
 const { PrismaClient } = require('@prisma/client')
+const RedisClient = require('../../redis')
+const path = require('path')
+const { IP2Location } = require('ip2location-nodejs')
+let ip2location = new IP2Location()
+
+const file = path.join(__dirname, 'IP2LOCATION-LITE-DB1.BIN')
+ip2location.open(file)
+
 const prisma = new PrismaClient()
 
 const calculateRating = (postStats, maxStats) => {
@@ -44,9 +52,19 @@ const calculateRating = (postStats, maxStats) => {
 
 const getPostRating = async (req, res) => {
   if (!req.body) return res.status(400).send('Please use request-body')
+  const { id } = req.body
+
+  if (!id) return res.status(400).json({ error: 'ID is required' })
+
+  const redisKey = `postRating:${id}`
+  const cacheExpiry = 600
+
   try {
-    const { id } = req.body
-    if (!id) return res.status(400).json({ error: 'ID is required' })
+    const cachedRating = await RedisClient.json.get(redisKey)
+    if (cachedRating) {
+      console.log('Post rating returned from Redis')
+      return res.status(200).json(cachedRating)
+    }
 
     let stats
     let entityType
@@ -193,11 +211,123 @@ const getPostRating = async (req, res) => {
       })
     }
 
-    res.status(200).json({ postRating, ratings })
+    const ratingData = { postRating, ratings }
+
+    await RedisClient.json.set(redisKey, '$', ratingData)
+    await RedisClient.expire(redisKey, cacheExpiry)
+    console.log('Post rating added to Redis')
+
+    res.status(200).json(ratingData)
   } catch (error) {
     console.error('Error calculating post rating:', error)
     res.status(500).json({ error: 'Error calculating post rating' })
   }
 }
 
-module.exports = { getPostRating }
+const getUserRating = async (req, res) => {
+  if (!req.body) return res.status(400).send('Please use request-body')
+  const { user_id } = req.body
+  if (!user_id) return res.status(400).json({ error: 'User ID is required' })
+
+  const redisKey = `userRating:${user_id}`
+  const cacheExpiry = 600
+
+  try {
+    const cachedRating = await RedisClient.json.get(redisKey)
+
+    if (cachedRating) {
+      console.log('User rating returned from Redis')
+      return res.status(200).json(cachedRating)
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { user_id },
+      include: {
+        articles: { include: { stats: true } },
+        Topic: { include: { Stat: true } },
+        Advertisement: { include: { Stat: true } }
+      }
+    })
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    const allStats = await prisma.stat.findMany()
+    const maxStats = {
+      clicks: Math.max(...allStats.map((stat) => stat.clicks)),
+      keypresses: Math.max(...allStats.map((stat) => stat.keypresses)),
+      mouseMovements: Math.max(...allStats.map((stat) => stat.mouseMovements)),
+      scrolls: Math.max(...allStats.map((stat) => stat.scrolls)),
+      totalTime: Math.max(...allStats.map((stat) => stat.totalTime))
+    }
+
+    let totalRating = 0
+    let totalPosts = 0
+
+    const calculatePostRatings = (posts, type) => {
+      return posts.map((post) => {
+        const postStats = post[type].reduce(
+          (acc, stat) => {
+            acc.clicks += stat.clicks
+            acc.keypresses += stat.keypresses
+            acc.mouseMovements += stat.mouseMovements
+            acc.scrolls += stat.scrolls
+            acc.totalTime += stat.totalTime
+            return acc
+          },
+          { clicks: 0, keypresses: 0, mouseMovements: 0, scrolls: 0, totalTime: 0 }
+        )
+
+        const rating = calculateRating(postStats, maxStats)
+        totalRating += rating
+        totalPosts++
+
+        return {
+          topic_id: post.topic_id || null,
+          article_id: post.article_id || null,
+          ad_id: post.ad_id || null,
+          rating
+        }
+      })
+    }
+
+    const articleRatings = calculatePostRatings(user.articles, 'stats')
+    const topicRatings = calculatePostRatings(user.Topic, 'Stat')
+    const advertisementRatings = calculatePostRatings(user.Advertisement, 'Stat')
+
+    const userRating = totalPosts > 0 ? totalRating / totalPosts : 0
+
+    const ratingData = {
+      userRating,
+      articleRatings,
+      topicRatings,
+      advertisementRatings
+    }
+
+    await RedisClient.json.set(redisKey, '$', ratingData)
+    await RedisClient.expire(redisKey, cacheExpiry)
+    console.log('User rating added to Redis')
+
+    res.status(200).json(ratingData)
+  } catch (error) {
+    console.error('Error calculating user rating:', error)
+    res.status(500).json({ error: 'Error calculating user rating' })
+  }
+}
+
+const trace = (req, res) => {
+  const ipAddress = req.headers['x-envoy-external-address'] || req.headers['x-forwarded-for']
+  try {
+    const location = ip2location.getCountryShort(ipAddress)
+    res.status(200).json({
+      ip: ipAddress,
+      country: location
+    })
+  } catch (error) {
+    console.error('Error getting IP location:', error)
+    res.status(500).json({ error: 'Error getting IP location' })
+  }
+}
+
+module.exports = { getPostRating, getUserRating, trace }

@@ -65,28 +65,37 @@ const addUser = async (req, res) => {
       user_id,
       location
     }
+    const redisKey = `user:${user_id}`
 
-    // const cachedUsers = await RedisClient.get('users')
-    // if (cachedUsers) {
-    //   const users = JSON.parse(cachedUsers)
-    //   // If cached articles exist search for current article_id
-    //   const userExists = users.find((user) => user.user_id === user_id)
-    //   console.log('Returned Cached User, user_id:', user_id)
-    //
-    //   if (userExists) {
-    //     // If found current user return
-    //     return res.json({ user_id })
-    //   } else {
-    //     // If user not found in cache add it
-    //     users.push(userData)
-    //     await RedisClient.set('users', JSON.stringify(users))
-    //     console.log('Added new user to Redis, user_id:', user_id)
-    //   }
-    // } else {
-    //   // If no cache exists, create a new one
-    //   await RedisClient.set('users', JSON.stringify([userData]))
-    //   console.log('Added users to Redis cache')
-    // }
+    // REDIS
+    const redisUser = await RedisClient.json.get(redisKey)
+    if (redisUser) {
+      console.log('REDIS LOCATION >>>> ', redisUser.location)
+      console.log('LOCATION RECEIVED >>>> ', location)
+      if (!redisUser.location.length && location) {
+        redisUser.location = location
+        await RedisClient.json
+          .set(redisKey, '$', redisUser)
+          .then(() => {
+            console.log('Updated location in Redis')
+          })
+          .catch((e) => console.error("Couldn't update redis", e))
+
+        await prisma.user
+          .update({
+            where: { user_id },
+            data: { location }
+          })
+          .then(() => {
+            console.log('User location updated in DB')
+          })
+          .catch((e) => console.error("Couldn't update db user location", e))
+        console.log('Returned updated user')
+        return res.status(200).json(redisUser)
+      }
+      console.log('User returned from Redis')
+      return res.status(200).json(redisUser)
+    }
 
     // DB
     const existingUser = await prisma.user.findUnique({
@@ -94,17 +103,50 @@ const addUser = async (req, res) => {
     })
 
     if (existingUser) {
-      res.json({ user_id })
-    } else {
-      const newUser = await prisma.user.create({
-        data: userData
+      console.log('EXISTING USER >>> ', existingUser)
+      console.log('LOCATION >>> ', location)
+      if (!existingUser.location.length && location) {
+        existingUser.location = location
+        await RedisClient.json
+          .set(redisKey, '$', existingUser)
+          .then(() => {
+            console.log('Updated location in Redis')
+          })
+          .catch((e) => console.error("Couldn't update redis", e))
+
+        await prisma.user
+          .update({
+            where: { user_id },
+            data: { location }
+          })
+          .then(() => {
+            console.log('User location updated in DB')
+          })
+          .catch((e) => console.error("Couldn't update db user location", e))
+        console.log('Returned updated user')
+        return res.status(200).json(existingUser)
+      }
+
+      await RedisClient.json.set(redisKey, '$', existingUser).then(() => {
+        console.log('Existing DB user added to Redis')
       })
-      res.status(201).json({ id: newUser.user_id, message: 'User created successfully' })
+      return res.json({ user_id })
     }
+
+    // If no user in db, add it to db and redis
+    const newUser = await prisma.user.create({
+      data: userData
+    })
+    await RedisClient.json.set(redisKey, '$', newUser).then(() => {
+      console.log('Created new user in Redis')
+    })
+    console.log('Created new user in DB')
+    return res.status(201).json({ id: newUser.user_id, message: 'User created successfully' })
+
     // --------------------
   } catch (e) {
     console.error('Error creating user:', e)
-    res.status(500).json({ error: 'Error creating user' })
+    return res.status(500).json({ error: 'Error creating user' })
   }
 }
 

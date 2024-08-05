@@ -10,14 +10,20 @@ const addReaction = async (req, res) => {
       where: { user_id }
     })
 
-    if (!user) return res.status(404).json({ error: 'User not found' })
+    if (!user) {
+      console.error('User not found. ID:', user_id)
+      return res.status(404).json({ error: 'User not found' })
+    }
 
     if (article_id) {
       const article = await prisma.article.findUnique({
         where: { article_id }
       })
 
-      if (!article) return res.status(404).json({ error: 'Article not found' })
+      if (!article) {
+        console.error('Article not found. ID:', article_id)
+        return res.status(404).json({ error: 'Article not found' })
+      }
 
       const existingInteraction = await prisma.like.findFirst({
         where: { article_id, user_id },
@@ -29,6 +35,7 @@ const addReaction = async (req, res) => {
           await prisma.like.delete({
             where: { id: existingInteraction.id }
           })
+          console.log('Interaction removed')
           return res.status(201).json({ article_id, message: 'Interaction removed successfully' })
         }
 
@@ -38,9 +45,13 @@ const addReaction = async (req, res) => {
             isLike: isLike
           }
         })
+        console.log('Interaction updated')
         return res.status(201).json({ article_id, message: 'Interaction updated successfully' })
       } else {
-        if (isLike === null) return res.status(400).json({ message: 'Like should be a boolean' })
+        if (isLike === null) {
+          console.error('Interaction should be a boolean')
+          return res.status(400).json({ message: 'Interaction should be a boolean' })
+        }
         await prisma.like.create({
           data: {
             user_id,
@@ -50,6 +61,7 @@ const addReaction = async (req, res) => {
           }
         })
       }
+      console.log('Interaction added')
       return res.status(201).json({ article_id, message: 'Interaction added successfully' })
     }
 
@@ -58,7 +70,10 @@ const addReaction = async (req, res) => {
         where: { topic_id }
       })
 
-      if (!topic) return res.status(404).json({ error: 'Topic not found' })
+      if (!topic) {
+        console.error('Topic not found. ID:', topic_id)
+        return res.status(404).json({ error: 'Topic not found' })
+      }
 
       const existingInteraction = await prisma.like.findFirst({
         where: { topic_id, user_id, article_id },
@@ -70,6 +85,7 @@ const addReaction = async (req, res) => {
           await prisma.like.delete({
             where: { id: existingInteraction.id }
           })
+          console.log('Interaction removed')
           return res.status(201).json({ topic_id, message: 'Interaction removed successfully' })
         }
 
@@ -79,6 +95,7 @@ const addReaction = async (req, res) => {
             isLike: isLike
           }
         })
+        console.log('Interaction updated')
         return res.status(201).json({ topic_id, message: 'Interaction updated successfully' })
       } else {
         if (isLike === null) return res.status(400).json({ message: 'Like should be a boolean' })
@@ -90,6 +107,7 @@ const addReaction = async (req, res) => {
           }
         })
       }
+      console.log('Interaction added')
       return res.status(201).json({ topic_id, message: 'Interaction added successfully' })
     }
     if (ad_id) {
@@ -97,7 +115,10 @@ const addReaction = async (req, res) => {
         where: { ad_id }
       })
 
-      if (!ad) return res.status(404).json({ error: 'Advertisement not found' })
+      if (!ad) {
+        console.error('Advertisement not found. ID:', ad_id)
+        return res.status(404).json({ error: 'Advertisement not found' })
+      }
 
       const existingInteraction = await prisma.like.findFirst({
         where: { ad_id, user_id },
@@ -109,6 +130,7 @@ const addReaction = async (req, res) => {
           await prisma.like.delete({
             where: { id: existingInteraction.id }
           })
+          console.log('Interaction removed')
           return res.status(201).json({ ad_id, message: 'Interaction removed successfully' })
         }
 
@@ -118,6 +140,7 @@ const addReaction = async (req, res) => {
             isLike: isLike
           }
         })
+        console.log('Interaction updated')
         return res.status(201).json({ ad_id, message: 'Interaction updated successfully' })
       } else {
         if (isLike === null) return res.status(400).json({ message: 'Like should be a boolean' })
@@ -129,10 +152,11 @@ const addReaction = async (req, res) => {
           }
         })
       }
+      console.log('Interaction added')
       return res.status(201).json({ ad_id, message: 'Interaction added successfully' })
     }
   } catch (e) {
-    console.log(e)
+    console.error(e)
     res.status(500).json({ error: 'Error adding interaction' })
   }
 }

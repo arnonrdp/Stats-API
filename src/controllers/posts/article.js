@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client')
 const RedisClient = require('../../redis')
 const prisma = new PrismaClient()
+const userController = require('../../controllers/users')
 
 const createArticle = async (req, res) => {
   try {
@@ -35,13 +36,23 @@ const createArticle = async (req, res) => {
       return res.status(404).json({ error: 'Topic not found' })
     }
 
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { user_id }
     })
 
     if (!user) {
-      console.error('User not found')
-      return res.status(400).json({ error: 'User not found' })
+      const addUserReq = {
+        body: { user_id }
+      }
+      const addUserRes = {
+        status: () => ({
+          json: (data) => data
+        })
+      }
+      const addUserResult = await userController.addUser(addUserReq, addUserRes)
+      if (addUserResult.error) {
+        return res.status(500).json({ error: 'Error creating user: createArticle controller' })
+      }
     }
 
     const newArticleData = {

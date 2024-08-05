@@ -1,5 +1,6 @@
 const { validationResult } = require('express-validator')
 const { PrismaClient } = require('@prisma/client')
+const RedisClient = require('../../redis')
 
 const prisma = new PrismaClient()
 
@@ -65,6 +66,15 @@ const getPostStats = async (req, res) => {
     const { id } = req.body
     if (!id) return res.status(400).json({ error: 'ID is required' })
 
+    const redisKey = `post:${id}`
+    const cacheExpiry = 600
+
+    const redisPost = await RedisClient.json.get(redisKey)
+    if (redisPost) {
+      console.log('Post stats returned from Redis')
+      return res.status(200).json(redisPost)
+    }
+
     const article = await prisma.stat.findMany({
       where: {
         OR: [
@@ -74,12 +84,19 @@ const getPostStats = async (req, res) => {
           {
             topic_id: id,
             article_id: null
+          },
+          {
+            ad_id: id
           }
         ]
       }
     })
 
-    if (!article) return res.status(400).json({ error: 'Article not found' })
+    if (!article || article.length === 0) return res.status(404).json({ error: 'Article not found' })
+
+    await RedisClient.json.set(redisKey, '$', article)
+    await RedisClient.expire(redisKey, cacheExpiry)
+    console.log('Existing DB article stats added to Redis')
 
     return res.status(200).json(article)
   } catch (e) {

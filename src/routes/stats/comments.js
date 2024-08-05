@@ -6,5 +6,6 @@ const commentsController = require('../../controllers/stats/comments')
 router.post('/comment', commentsController.addComment)
 router.get('/comments', commentsController.getAllArticleComments)
 router.get('/comments/article/', commentsController.getArticleCommentsByCountry)
+router.get('/comments/analyze', commentsController.analyze)
 
 module.exports = router

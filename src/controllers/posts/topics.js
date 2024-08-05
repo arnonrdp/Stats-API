@@ -1,5 +1,4 @@
 const { PrismaClient } = require('@prisma/client')
-const RedisClient = require('../../redis')
 
 const prisma = new PrismaClient()
 
