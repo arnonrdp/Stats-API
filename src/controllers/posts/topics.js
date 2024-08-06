@@ -142,7 +142,7 @@ const getTopicArticles = async (req, res) => {
 const deleteTopic = async (req, res) => {
   try {
     const { topic_id } = req.query
-    const redisKey = `post:${topic_id}`
+    const redisKey = [`post:${topic_id}`, `postRating:${topic_id}`]
     if (!topic_id) return res.status(400).json({ error: 'topic_id is required' })
     const topic = await prisma.topic.findUnique({
       where: { topic_id }

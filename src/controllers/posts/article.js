@@ -116,7 +116,7 @@ const getAllArticles = async (req, res) => {
 const deleteArticle = async (req, res) => {
   try {
     const { article_id } = req.query
-    const redisKey = `post:${article_id}`
+    const redisKey = [`post:${article_id}`, `postRating:${article_id}`]
     if (!article_id) return res.status(400).json({ error: 'article_id is required' })
     const article = await prisma.article.findUnique({
       where: { article_id }

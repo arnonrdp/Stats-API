@@ -103,9 +103,6 @@ const addUser = async (req, res) => {
     })
 
     if (existingUser) {
-      console.log('EXISTING USER >>> ', existingUser)
-      console.log('LOCATION >>> ', location)
-      console.log('EXISTING  USER LOCATION + USER', existingUser.location, existingUser)
       if (existingUser && !existingUser.location?.length && location) {
         existingUser.location = location
         await RedisClient.json
