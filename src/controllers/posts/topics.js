@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client')
+const RedisClient = require('../../redis')
 
 const prisma = new PrismaClient()
 
@@ -18,7 +19,10 @@ const createTopic = async (req, res) => {
     const user = await prisma.user.findUnique({
       where: { user_id }
     })
-    if (!user) return res.status(400).json({ message: 'User Not Found!' })
+    if (!user) {
+      console.error('User not found!')
+      return res.status(400).json({ message: 'User Not Found!' })
+    }
 
     const newTopicData = {
       user_id,
@@ -80,9 +84,13 @@ const createTopic = async (req, res) => {
 
 const getAllTopics = async (req, res) => {
   try {
-    const topics = await prisma.topic.findMany()
+    const topics = await prisma.topic.findMany({
+      select: {
+        topic_id: true
+      }
+    })
     if (!topics) return res.status(400).json({ error: 'Topics list empty' })
-    res.status(200).json(topics)
+    return res.status(200).json(topics)
   } catch (e) {
     console.error('Error getting topics list:', e)
     res.status(500).json({ error: 'Error getting topics list' })
@@ -140,9 +148,13 @@ const deleteTopic = async (req, res) => {
       where: { topic_id }
     })
 
-    if (!topic) return res.status(400).json({ error: 'Topic not found' })
+    if (!topic) {
+      console.error('Topic not found. Nothing to delete')
+      return res.status(400).json({ error: 'Topic not found' })
+    }
     await prisma.topic.delete({ where: { topic_id } })
     await RedisClient.json.DEL(redisKey)
+    console.log('Topic deleted successfully', topic_id)
     return res.status(200).json({ message: 'Topic deleted successfully' })
   } catch (e) {
     console.error(e)

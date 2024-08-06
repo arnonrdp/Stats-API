@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client')
+const RedisClient = require('../../redis')
 const prisma = new PrismaClient()
 
 const createAd = async (req, res) => {
@@ -66,4 +67,27 @@ const createAd = async (req, res) => {
   }
 }
 
-module.exports = { createAd }
+const deleteAd = async (req, res) => {
+  try {
+    const { ad_id } = req.query
+    const redisKey = `post:${ad_id}`
+    if (!ad_id) return res.status(400).json({ error: 'ad_id is required' })
+    const ad = await prisma.advertisement.findUnique({
+      where: { ad_id }
+    })
+
+    if (!ad) {
+      console.error('Advertisement not found. Nothing to delete')
+      return res.status(400).json({ error: 'Advertisement not found' })
+    }
+    await prisma.advertisement.delete({ where: { ad_id } })
+    await RedisClient.json.DEL(redisKey)
+    console.log('Advertisement deleted successfully', ad_id)
+    return res.status(200).json({ message: 'Advertisement deleted successfully' })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Error deleting advertisement' })
+  }
+}
+
+module.exports = { createAd, deleteAd }

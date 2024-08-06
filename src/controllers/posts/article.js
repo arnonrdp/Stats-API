@@ -122,8 +122,13 @@ const deleteArticle = async (req, res) => {
       where: { article_id }
     })
 
-    if (!article) return res.status(400).json({ error: 'Article not found' })
+    if (!article) {
+      console.error('Article not found. Nothing to delete')
+      return res.status(400).json({ error: 'Article not found' })
+    }
+
     await prisma.article.delete({ where: { article_id } })
+    console.log('Topic deleted successfully', article_id)
     await RedisClient.json.DEL(redisKey)
     return res.status(200).json({ message: 'Article deleted successfully' })
   } catch (e) {
