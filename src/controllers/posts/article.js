@@ -130,7 +130,8 @@ const deleteArticle = async (req, res) => {
 
     await prisma.article.delete({ where: { article_id } })
     console.log('Topic deleted successfully', article_id)
-    await RedisClient.json.DEL(postKey, postRatingKey)
+    await RedisClient.json.DEL(postKey)
+    await RedisClient.json.DEL(postRatingKey)
     return res.status(200).json({ message: 'Article deleted successfully' })
   } catch (e) {
     console.error(e)

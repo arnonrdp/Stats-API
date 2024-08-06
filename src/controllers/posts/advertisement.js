@@ -82,7 +82,8 @@ const deleteAd = async (req, res) => {
       return res.status(400).json({ error: 'Advertisement not found' })
     }
     await prisma.advertisement.delete({ where: { ad_id } })
-    await RedisClient.json.DEL(postKey, postRatingKey)
+    await RedisClient.json.DEL(postKey)
+    await RedisClient.json.DEL(postRatingKey)
     console.log('Advertisement deleted successfully', ad_id)
     return res.status(200).json({ message: 'Advertisement deleted successfully' })
   } catch (e) {
