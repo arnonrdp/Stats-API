@@ -142,7 +142,8 @@ const getTopicArticles = async (req, res) => {
 const deleteTopic = async (req, res) => {
   try {
     const { topic_id } = req.query
-    const redisKey = [`post:${topic_id}`, `postRating:${topic_id}`]
+    const postKey = `post:${topic_id}`
+    const postRatingKey = `postRating:${topic_id}`
     if (!topic_id) return res.status(400).json({ error: 'topic_id is required' })
     const topic = await prisma.topic.findUnique({
       where: { topic_id }
@@ -153,7 +154,7 @@ const deleteTopic = async (req, res) => {
       return res.status(400).json({ error: 'Topic not found' })
     }
     await prisma.topic.delete({ where: { topic_id } })
-    await RedisClient.json.DEL(redisKey)
+    await RedisClient.json.DEL(postKey, postRatingKey)
     console.log('Topic deleted successfully', topic_id)
     return res.status(200).json({ message: 'Topic deleted successfully' })
   } catch (e) {

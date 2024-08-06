@@ -70,7 +70,8 @@ const createAd = async (req, res) => {
 const deleteAd = async (req, res) => {
   try {
     const { ad_id } = req.query
-    const redisKey = `post:${ad_id}`
+    const postKey = `post:${ad_id}`
+    const postRatingKey = `postRating:${ad_id}`
     if (!ad_id) return res.status(400).json({ error: 'ad_id is required' })
     const ad = await prisma.advertisement.findUnique({
       where: { ad_id }
@@ -81,7 +82,7 @@ const deleteAd = async (req, res) => {
       return res.status(400).json({ error: 'Advertisement not found' })
     }
     await prisma.advertisement.delete({ where: { ad_id } })
-    await RedisClient.json.DEL(redisKey)
+    await RedisClient.json.DEL(postKey, postRatingKey)
     console.log('Advertisement deleted successfully', ad_id)
     return res.status(200).json({ message: 'Advertisement deleted successfully' })
   } catch (e) {
