@@ -16,7 +16,10 @@ const updateStats = async (req, res) => {
     if (!type) return res.status(400).json({ error: 'Type is required' })
 
     const user = await prisma.user.findUnique({ where: { user_id } })
-    if (!user) return res.status(400).json({ error: 'User Not Found' })
+    if (!user) {
+      console.error('User not found. ID:', user_id)
+      return res.status(400).json({ error: 'User Not Found' })
+    }
 
     let existingStats, statData, entity
 
