@@ -62,6 +62,16 @@ const createArticle = async (req, res) => {
       topic_id,
       article_id
     }
+    const statData = {
+      user_id,
+      topic_id: newArticleData.topic_id,
+      article_id: newArticleData.article_id,
+      clicks: 0,
+      keypresses: 0,
+      mouseMovements: 0,
+      scrolls: 0,
+      totalTime: 0
+    }
 
     // DB
     const existingArticle = await prisma.article.findUnique({
@@ -75,7 +85,8 @@ const createArticle = async (req, res) => {
       const newArticle = await prisma.article.create({
         data: newArticleData
       })
-      console.log('Created new article', newArticle?.article_id)
+      const stat = await prisma.stat.create({ data: statData })
+      console.log('Created new article and stats data', newArticle?.article_id, stat.id)
       res.status(201).json({ id: newArticle.article_id, message: 'Article created successfully' })
     }
     // --------------------
@@ -105,13 +116,22 @@ const getAllArticles = async (req, res) => {
 const deleteArticle = async (req, res) => {
   try {
     const { article_id } = req.query
+    const postKey = `post:${article_id}`
+    const postRatingKey = `postRating:${article_id}`
     if (!article_id) return res.status(400).json({ error: 'article_id is required' })
     const article = await prisma.article.findUnique({
       where: { article_id }
     })
 
-    if (!article) return res.status(400).json({ error: 'Article not found' })
+    if (!article) {
+      console.error('Article not found. Nothing to delete')
+      return res.status(400).json({ error: 'Article not found' })
+    }
+
     await prisma.article.delete({ where: { article_id } })
+    console.log('Topic deleted successfully', article_id)
+    await RedisClient.json.DEL(postKey)
+    await RedisClient.json.DEL(postRatingKey)
     return res.status(200).json({ message: 'Article deleted successfully' })
   } catch (e) {
     console.error(e)

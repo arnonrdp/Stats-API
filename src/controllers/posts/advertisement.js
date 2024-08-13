@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client')
+const RedisClient = require('../../redis')
 const prisma = new PrismaClient()
 
 const createAd = async (req, res) => {
@@ -33,6 +34,16 @@ const createAd = async (req, res) => {
       duration
     }
 
+    const statData = {
+      user_id,
+      ad_id: newAdData.ad_id,
+      clicks: 0,
+      keypresses: 0,
+      mouseMovements: 0,
+      scrolls: 0,
+      totalTime: 0
+    }
+
     // Check if ad exists in the database
     const existingAd = await prisma.advertisement.findUnique({
       where: { ad_id }
@@ -46,7 +57,8 @@ const createAd = async (req, res) => {
       const newAd = await prisma.advertisement.create({
         data: newAdData
       })
-      console.log('New ad added to DB')
+      const stat = await prisma.stat.create({ data: statData })
+      console.log(`New ad added to DB. Ad_id: ${newAd.ad_id}, stats id: ${stat.id}`)
       res.status(201).json({ id: newAd.ad_id, message: 'Advertisement added successfully' })
     }
   } catch (e) {
@@ -55,4 +67,29 @@ const createAd = async (req, res) => {
   }
 }
 
-module.exports = { createAd }
+const deleteAd = async (req, res) => {
+  try {
+    const { ad_id } = req.query
+    const postKey = `post:${ad_id}`
+    const postRatingKey = `postRating:${ad_id}`
+    if (!ad_id) return res.status(400).json({ error: 'ad_id is required' })
+    const ad = await prisma.advertisement.findUnique({
+      where: { ad_id }
+    })
+
+    if (!ad) {
+      console.error('Advertisement not found. Nothing to delete')
+      return res.status(400).json({ error: 'Advertisement not found' })
+    }
+    await prisma.advertisement.delete({ where: { ad_id } })
+    await RedisClient.json.DEL(postKey)
+    await RedisClient.json.DEL(postRatingKey)
+    console.log('Advertisement deleted successfully', ad_id)
+    return res.status(200).json({ message: 'Advertisement deleted successfully' })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Error deleting advertisement' })
+  }
+}
+
+module.exports = { createAd, deleteAd }
