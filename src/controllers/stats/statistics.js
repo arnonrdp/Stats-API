@@ -26,19 +26,28 @@ const updateStats = async (req, res) => {
     switch (type) {
       case 'article':
         entity = await prisma.article.findUnique({ where: { article_id: id } })
-        if (!entity) return res.status(400).json({ error: 'Article Not Found' })
+        if (!entity) {
+          console.error('Article Not Found')
+          return res.status(400).json({ error: 'Article Not Found' })
+        }
         existingStats = await prisma.stat.findFirst({ where: { article_id: id, user_id } })
         statData = { user_id, topic_id: entity.topic_id, article_id: id, clicks, keypresses, mouseMovements, scrolls, totalTime }
         break
       case 'topic':
         entity = await prisma.topic.findUnique({ where: { topic_id: id } })
-        if (!entity) return res.status(400).json({ error: 'Topic Not Found' })
+        if (!entity) {
+          console.error('Topic Not Found')
+          return res.status(400).json({ error: 'Topic Not Found' })
+        }
         existingStats = await prisma.stat.findFirst({ where: { topic_id: id, article_id: null, user_id } })
         statData = { user_id, topic_id: id, article_id: null, clicks, keypresses, mouseMovements, scrolls, totalTime }
         break
       case 'advertisement':
         entity = await prisma.advertisement.findUnique({ where: { ad_id: id } })
-        if (!entity) return res.status(400).json({ error: 'Advertisement Not Found' })
+        if (!entity) {
+          console.error('Advertisement Not Found')
+          return res.status(400).json({ error: 'Advertisement Not Found' })
+        }
         existingStats = await prisma.stat.findFirst({ where: { ad_id: id, user_id } })
         statData = { user_id, ad_id: id, clicks, keypresses, mouseMovements, scrolls, totalTime }
         break
