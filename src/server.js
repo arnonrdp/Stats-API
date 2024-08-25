@@ -1,6 +1,6 @@
 const express = require('express')
-const layer8 = require('layer8_middleware')
 const cors = require('cors')
+const mockLayer8 = require('mock_layer8_module')
 const basicAuth = require('express-basic-auth')
 require('dotenv').config()
 
@@ -11,7 +11,8 @@ const clearUsersPassword = process.env.CLEAR_PASSWORD
 app.set('trust proxy', true)
 
 app.use(cors())
-// app.use(express.json())
+app.use(express.json())
+
 const loggerMiddleware = (req, res, next) => {
   console.log(`${req.method} - ${req.url}`)
   console.log(`${req.path}`)
@@ -37,10 +38,11 @@ const authenticateRoutes = (req, res, next) => {
     next()
   }
 }
+app.use(mockLayer8.mock_layer8_middleware)
 
 app.use(authenticateRoutes)
 
-app.use(layer8.tunnel)
+// app.use(layer8.tunnel)
 const swaggerRoute = require('./routes/swagger/swaggerRoute')
 const statsRoutes = require('./routes/stats/statistics')
 const topicRoutes = require('./routes/posts/topics')
