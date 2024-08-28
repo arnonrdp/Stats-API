@@ -69,6 +69,10 @@ app.get('/', (req, res) => {
   res.status(200).send('No content here. Move out')
 })
 
+app.get('/v1', (req, res) => {
+  res.status(200).send('No content here. Move out')
+})
+
 app.listen(port, async () => {
   console.log(`Server is listening on PORT:${port}`)
 })
