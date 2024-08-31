@@ -51,12 +51,11 @@ const calculateRating = (postStats, maxStats) => {
 }
 
 const getPostRating = async (req, res) => {
-  if (!req.body) return res.status(400).send('Please use request-body')
-  const { id } = req.body
+  const { post_id } = req.query
 
-  if (!id) return res.status(400).json({ error: 'ID is required' })
+  if (!post_id) return res.status(400).json({ error: 'ID is required' })
 
-  const redisKey = `postRating:${id}`
+  const redisKey = `postRating:${post_id}`
   const cacheExpiry = 600
 
   try {
@@ -70,27 +69,27 @@ const getPostRating = async (req, res) => {
     let entityType
 
     const articleExists = await prisma.article.findUnique({
-      where: { article_id: id }
+      where: { article_id: post_id }
     })
 
     if (articleExists) {
       entityType = 'article'
       stats = await prisma.stat.findMany({
-        where: { article_id: id }
+        where: { article_id: post_id }
       })
     } else {
       const topicExists = await prisma.topic.findUnique({
-        where: { topic_id: id }
+        where: { topic_id: post_id }
       })
 
       if (topicExists) {
         entityType = 'topic'
         stats = await prisma.stat.findMany({
-          where: { topic_id: id, article_id: null }
+          where: { topic_id: post_id, article_id: null }
         })
       } else {
         const adExists = await prisma.advertisement.findUnique({
-          where: { ad_id: id }
+          where: { ad_id: post_id }
         })
         if (!adExists) {
           return res.status(404).json({ error: 'ID does not exist' })
@@ -98,7 +97,7 @@ const getPostRating = async (req, res) => {
 
         entityType = 'advertisement'
         stats = await prisma.stat.findMany({
-          where: { ad_id: id }
+          where: { ad_id: post_id }
         })
       }
     }
@@ -225,8 +224,8 @@ const getPostRating = async (req, res) => {
 }
 
 const getUserRating = async (req, res) => {
-  if (!req.body) return res.status(400).send('Please use request-body')
-  const { user_id } = req.body
+  const { user_id } = req.query
+
   if (!user_id) return res.status(400).json({ error: 'User ID is required' })
 
   const redisKey = `userRating:${user_id}`

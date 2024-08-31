@@ -73,9 +73,8 @@ const updateStats = async (req, res) => {
 }
 
 const getPostStats = async (req, res) => {
-  if (!req.body) return res.status(400).send('Please use request-body')
   try {
-    const { id } = req.body
+    const { id } = req.query
     if (!id) return res.status(400).json({ error: 'ID is required' })
 
     const redisKey = `post:${id}`
@@ -156,7 +155,7 @@ const getUsersLocations = async (req, res) => {
 }
 
 const getMetricsByCountry = async (req, res) => {
-  const { id } = req.body
+  const { id } = req.query
   if (!id) return res.status(404).json({ error: 'ID is required' })
 
   try {
