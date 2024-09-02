@@ -13,7 +13,7 @@ app.set('trust proxy', true)
 app.use(
   cors({
     origin: '*',
-    optionsSuccessStatus: 'OK'
+    optionsSuccessStatus: 200
   })
 )
 
