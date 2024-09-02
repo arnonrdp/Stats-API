@@ -8,13 +8,12 @@ const app = express()
 const port = process.env.PORT || 8080
 const swaggerPassword = process.env.SWAGGER_PASSWORD
 const clearUsersPassword = process.env.CLEAR_PASSWORD
-const allowedOrigin = process.env.ENVIRONMENT === 'production' ? process.env.PROD_ALLOWED_ORIGIN : process.env.DEV_ALLOWED_ORIGIN
 app.set('trust proxy', true)
 
 app.use(
   cors({
-    origin: allowedOrigin,
-    optionsSuccessStatus: 200
+    origin: '*',
+    optionsSuccessStatus: 'OK'
   })
 )
 
