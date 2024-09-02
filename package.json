@@ -31,7 +31,7 @@
     "layer8_middleware": "^0.0.17",
     "mock_layer8_module": "^1.0.1",
     "openai": "^4.51.0",
-    "redis": "^4.6.14"
+    "redis": "^4.7.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0",
