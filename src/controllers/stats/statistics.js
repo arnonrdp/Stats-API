@@ -78,7 +78,7 @@ const getPostStats = async (req, res) => {
     if (!id) return res.status(400).json({ error: 'ID is required' })
 
     const redisKey = `post:${id}`
-    const cacheExpiry = 600
+    const cacheExpiry = 60
 
     const redisPost = await RedisClient.json.get(redisKey)
     if (redisPost) {
